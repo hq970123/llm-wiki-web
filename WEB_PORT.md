@@ -121,6 +121,7 @@ llm-wiki-web (Rust, axum + tokio)               server/
 | `RESOURCE_DIR` | exe 所在目录 | 查找 `libpdfium.so` 等资源 |
 | `PDFIUM_DYNAMIC_LIB_PATH` | 自动探测 `RESOURCE_DIR/libpdfium.so` | pdfium 动态库路径（Docker 镜像中为 `/app/libpdfium.so`） |
 | `LLM_WIKI_PASSWORD` | 未设置 | 固定登录密码 |
+| `LLM_WIKI_RESET_AUTH` | 未设置 | 设为一个新值并重启：清除已存密码，下次访问重新进入设置页（同一值只生效一次） |
 | `LLM_WIKI_SECURE_COOKIE` | 未设置 | `1` = 总是发 `Secure` cookie（反代没传 `X-Forwarded-Proto` 时使用） |
 | `LLM_WIKI_PROXY_ALLOW_PRIVATE` | `0` | `1` = 允许 `/api/proxy` 访问私网/回环地址 |
 | `LLM_WIKI_ALLOW_CLI` | `0` | `1` = 允许 Claude/Codex CLI 命令 |
@@ -162,7 +163,7 @@ docker compose up -d
 Dockerfile 为多阶段：`node:22` 构建前端 → `rust:1-bookworm`（装 `protobuf-compiler`、cmake、clang）编译
 `llm-wiki-web` → 按 `TARGETARCH` 选择并校验 `src-tauri/pdfium/libpdfium.so`（x86_64）或 `libpdfium-arm64.so`
 （SHA256SUMS 校验）→ `debian:bookworm-slim` 运行时，uid 1000 用户、`EXPOSE 7860`、`VOLUME /data`、tini、健康检查。
-构建机内存紧张时可 `--build-arg BUILD_JOBS=2`。
+构建机内存紧张时可 `--build-arg CARGO_BUILD_JOBS=2`。
 
 ### 4.3 Hugging Face Spaces
 

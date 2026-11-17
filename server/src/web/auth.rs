@@ -92,6 +92,21 @@ impl Auth {
     pub fn load(data_dir: &Path) -> Self {
         let file = data_dir.join("auth.json");
         let sessions_file = data_dir.join("sessions.json");
+        // One-shot reset: when LLM_WIKI_RESET_AUTH is set to a value not seen
+        // before, forget the stored password (and sessions) so the next visitor
+        // runs first-time setup again. The value is remembered in
+        // DATA_DIR/auth-reset.done, so restarts do not reset again.
+        if let Ok(tok) = std::env::var("LLM_WIKI_RESET_AUTH") {
+            let tok = tok.trim().to_string();
+            let marker = data_dir.join("auth-reset.done");
+            let seen = std::fs::read_to_string(&marker).unwrap_or_default();
+            if !tok.is_empty() && seen.trim() != tok {
+                let _ = std::fs::remove_file(&file);
+                let _ = std::fs::remove_file(&sessions_file);
+                let _ = std::fs::write(&marker, &tok);
+                eprintln!("[auth] password reset by LLM_WIKI_RESET_AUTH");
+            }
+        }
         let stored: AuthFile = std::fs::read_to_string(&file)
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
