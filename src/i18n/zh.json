@@ -4,11 +4,25 @@
     "subtitle": "用 LLM 构建和维护你的个人知识库"
   },
   "common": {
-    "retry": "重试", "cancel": "取消", "ignore": "忽略", "close": "关闭", "ok": "确定", "confirm": "确认", "notice": "提示",
-    "dismiss": "关闭", "remove": "移除", "loading": "加载中……", "optional": "可选"
+    "retry": "重试",
+    "cancel": "取消",
+    "ignore": "忽略",
+    "close": "关闭",
+    "ok": "确定",
+    "confirm": "确认",
+    "notice": "提示",
+    "dismiss": "关闭",
+    "remove": "移除",
+    "loading": "加载中……",
+    "optional": "可选"
   },
-  "layout": { "showSidebar": "展开侧栏", "hideSidebar": "收起侧栏" },
-  "errors": { "generic": "出现错误" },
+  "layout": {
+    "showSidebar": "展开侧栏",
+    "hideSidebar": "收起侧栏"
+  },
+  "errors": {
+    "generic": "出现错误"
+  },
   "mermaid": {
     "renderFailed": "无法渲染 Mermaid 图表",
     "showDetails": "查看解析器详情",
@@ -49,10 +63,16 @@
     "allSources": "全部资料",
     "noWikiPages": "暂无 Wiki 页面，请先导入原始资料。",
     "typeLabels": {
-      "overview": "概览", "entity": "实体", "concept": "概念",
-      "source": "来源", "synthesis": "综合", "finding": "发现",
-      "thesis": "论点", "methodology": "方法论",
-      "comparison": "比较", "query": "查询"
+      "overview": "概览",
+      "entity": "实体",
+      "concept": "概念",
+      "source": "来源",
+      "synthesis": "综合",
+      "finding": "发现",
+      "thesis": "论点",
+      "methodology": "方法论",
+      "comparison": "比较",
+      "query": "查询"
     }
   },
   "editor": {
@@ -94,7 +114,10 @@
       "createFailed": "无法创建缺失页面。",
       "emptyDraftError": "模型返回了空白草稿。"
     },
-    "frontmatter": { "origin": "来源", "more": "更多" },
+    "frontmatter": {
+      "origin": "来源",
+      "more": "更多"
+    },
     "rawMarkdownEditor": "Markdown 源码编辑器"
   },
   "research": {
@@ -128,7 +151,7 @@
     "name": "项目名称",
     "namePlaceholder": "my-research-wiki",
     "parentDir": "父目录",
-    "parentDirPlaceholder": "/Users/you/projects",
+    "parentDirPlaceholder": "/data/projects",
     "template": "模板",
     "cancel": "取消",
     "create": "创建",
@@ -533,7 +556,7 @@
           "activeDefault": "使用当前活跃模型",
           "hint": "可为交互聊天和文档摄取分别选择模型；未指定时继续使用当前活跃模型。"
         },
-      "projectOverride": {
+        "projectOverride": {
           "enabled": "为当前项目使用独立模型",
           "provider": "项目 Provider",
           "selectProvider": "选择 Provider",
@@ -613,7 +636,7 @@
         "azureModelFamilyGpt5": "GPT-5 / o-series 严格参数",
         "azureModelFamilyHint": "Azure 的 deployment 名称可以任意命名。如果该部署拒绝 max_tokens 或非默认 temperature，请选择 GPT-5 / o-series。",
         "reasoning": {
-          "title": "Reasoning / thinking",
+          "title": "推理 / 思考",
           "auto": "自动",
           "off": "关闭",
           "low": "低",
@@ -622,7 +645,6 @@
           "max": "最大",
           "custom": "自定义",
           "budgetTokens": "thinking token 预算",
-
           "hint": "控制聊天时的推理强度；文档摄取使用下方的独立设置。",
           "ingestTitle": "导入时的推理",
           "ingestHint": "通常应关闭：导入需要结构化输出，推理只会增加耗时而无助于质量。仅当模型拒绝在关闭推理的情况下运行时才调高。"
@@ -693,7 +715,7 @@
         "azureModelFamilyGpt5": "GPT-5 / o-series 严格参数",
         "azureModelFamilyHint": "如果该部署拒绝 max_tokens 或非默认 temperature，请选择 GPT-5 / o-series。",
         "azureDeployment": "部署名称",
-        "apiKey": "API Key",
+        "apiKey": "API 密钥",
         "apiKeyPlaceholder": "本地 / 无鉴权端点留空",
         "model": "模型",
         "modelHint": "必须是支持视觉输入的模型。文本-only 模型会在首次 ingest 时报 400 / image-not-supported。",
@@ -1002,9 +1024,9 @@
         "parsingBackend": "解析后端",
         "backendHybrid": "Hybrid engine（推荐）",
         "backendPipeline": "Pipeline",
-        "backendVlm": "VLM engine",
-        "backendHybridHttp": "Hybrid HTTP client",
-        "backendVlmHttp": "VLM HTTP client",
+        "backendVlm": "VLM 引擎",
+        "backendHybridHttp": "混合 HTTP 客户端",
+        "backendVlmHttp": "VLM HTTP 客户端",
         "effort": "Hybrid 精度",
         "effortMedium": "Medium（更快）",
         "effortHigh": "High（图片分析和最高精度）",
@@ -1017,7 +1039,7 @@
         "formulaParsing": "公式解析",
         "tableParsing": "表格解析",
         "imageAnalysis": "图片分析",
-        "token": "API Token",
+        "token": "API 令牌",
         "tokenHint": "从 mineru.net 获取您的 Token",
         "model": "模型版本",
         "modelVlm": "VLM（推荐，适合复杂排版）",
@@ -1085,12 +1107,25 @@
     "fileSync": "文件同步",
     "rescan": "重新扫描",
     "rescanTitle": "扫描项目文件的外部变更",
-    "changeKinds": { "created": "已创建", "modified": "已修改", "deleted": "已删除" },
+    "changeKinds": {
+      "created": "已创建",
+      "modified": "已修改",
+      "deleted": "已删除"
+    },
     "fileTypes": {
-      "entity": "实体", "concept": "概念", "source": "来源", "query": "查询",
-      "synthesis": "综合", "comparison": "比较", "finding": "发现",
-      "thesis": "论点", "methodology": "方法论", "overview": "概览",
-      "index": "索引", "log": "日志", "file": "文件"
+      "entity": "实体",
+      "concept": "概念",
+      "source": "来源",
+      "query": "查询",
+      "synthesis": "综合",
+      "comparison": "比较",
+      "finding": "发现",
+      "thesis": "论点",
+      "methodology": "方法论",
+      "overview": "概览",
+      "index": "索引",
+      "log": "日志",
+      "file": "文件"
     }
   },
   "fileTree": {
@@ -1175,5 +1210,13 @@
     "minutesAgo": "{{count}} 分钟前",
     "hoursAgo": "{{count}} 小时前",
     "daysAgo": "{{count}} 天前"
+  },
+  "webUi": {
+    "loading": "加载中…",
+    "selectFileToPreview": "选择一个文件进行预览",
+    "noProjectOpen": "尚未打开项目",
+    "close": "关闭",
+    "text": "文本",
+    "pdfText": "PDF 文本"
   }
 }

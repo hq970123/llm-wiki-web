@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useEffect, useCallback, useRef } from "react"
 import { ArrowLeft, ArrowRight, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -106,7 +107,7 @@ export function PreviewPanel() {
   if (!selectedFile) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Select a file to preview
+        {i18n.t("webUi.selectFileToPreview")}
       </div>
     )
   }

@@ -111,7 +111,7 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close render={<Button variant="outline" />}>
-          Close
+          {i18n.t("webUi.close")}
         </DialogPrimitive.Close>
       )}
     </div>

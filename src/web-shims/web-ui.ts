@@ -5,9 +5,9 @@
  */
 import { apiFetch, apiJson, getWebConfig, nativeFetch } from "./runtime"
 
-const zh = typeof navigator !== "undefined" && /^zh/i.test(navigator.language || "")
-const T = zh
-  ? {
+import i18n from "@/i18n"
+
+const T_ZH = {
       chooseFolder: "选择服务器上的文件夹",
       select: "选择此文件夹",
       cancel: "取消",
@@ -29,7 +29,7 @@ const T = zh
       pwDone: "密码已修改",
       hint: "所有数据保存在服务器的数据目录中。",
     }
-  : {
+const T_EN: typeof T_ZH = {
       chooseFolder: "Choose a folder on the server",
       select: "Select this folder",
       cancel: "Cancel",
@@ -51,6 +51,12 @@ const T = zh
       pwDone: "Password changed",
       hint: "Everything lives in the server's data directory.",
     }
+
+/** Shell strings follow the app's current UI language (Settings → Interface). */
+const T: typeof T_ZH = new Proxy({} as typeof T_ZH, {
+  get: (_t, key: string) =>
+    ((i18n.language || "").toLowerCase().startsWith("zh") ? T_ZH : T_EN)[key as keyof typeof T_ZH],
+})
 
 // ---------------------------------------------------------------- styles
 

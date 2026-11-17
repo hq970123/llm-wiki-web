@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import {
   FileText, Users, Lightbulb, BookOpen, HelpCircle, GitMerge, BarChart3, TrendingUp, Target, ChevronRight, ChevronDown, Layout, Globe, Trash2,
@@ -150,7 +151,7 @@ export function KnowledgeTree() {
   if (!project) {
     return (
       <div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">
-        No project open
+        {i18n.t("webUi.noProjectOpen")}
       </div>
     )
   }

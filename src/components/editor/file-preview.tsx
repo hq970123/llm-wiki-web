@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { openPath } from "@tauri-apps/plugin-opener"
@@ -85,7 +86,7 @@ function FilePreviewContent({ filePath, textContent }: FilePreviewProps) {
       }
       return <CodePreview filePath={filePath} content={textContent} />
     case "text":
-      return <TextPreview filePath={filePath} content={textContent} label="Text" />
+      return <TextPreview filePath={filePath} content={textContent} label={i18n.t("webUi.text")} />
     case "document":
       if (isExtractedTextPreviewFile(filePath)) {
         return <TextPreview filePath={filePath} content={textContent} label={extractedTextLabel(filePath)} />
@@ -205,7 +206,7 @@ function PdfPreview({ filePath, content }: { filePath: string; content: string }
       <button type="button" onClick={() => void openPath(filePath)} className="rounded p-1 hover:bg-muted" title={t("preview.openWithSystem")} aria-label={t("preview.openWithSystem")}><ExternalLink className="h-3.5 w-3.5" /></button>
     </div>
     <div className="min-h-0 flex-1 overflow-hidden rounded-md border bg-white">
-      {showText ? <TextPreview filePath={filePath} content={content} label="PDF text" /> : loading ? (
+      {showText ? <TextPreview filePath={filePath} content={content} label={i18n.t("webUi.pdfText")} /> : loading ? (
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">{t("preview.pdfLoading")}</div>
       ) : loadError ? (
         <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground">
