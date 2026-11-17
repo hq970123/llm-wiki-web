@@ -19,6 +19,14 @@ const T = zh
       empty: "（没有子文件夹）",
       project: "项目",
       signOut: "退出登录",
+      changePw: "修改密码",
+      curPw: "当前密码",
+      newPw: "新密码（至少 8 位）",
+      confirmPw: "确认新密码",
+      save: "保存",
+      pwMismatch: "两次输入的新密码不一致",
+      pwShort: "新密码至少 8 位",
+      pwDone: "密码已修改",
       hint: "所有数据保存在服务器的数据目录中。",
     }
   : {
@@ -33,6 +41,14 @@ const T = zh
       empty: "(no sub-folders)",
       project: "project",
       signOut: "Sign out",
+      changePw: "Change password",
+      curPw: "Current password",
+      newPw: "New password (8+ characters)",
+      confirmPw: "Confirm new password",
+      save: "Save",
+      pwMismatch: "New passwords do not match",
+      pwShort: "New password must be at least 8 characters",
+      pwDone: "Password changed",
       hint: "Everything lives in the server's data directory.",
     }
 
@@ -62,6 +78,10 @@ function ensureStyles(): void {
   .lw-progress{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483001;background:#111827;color:#fff;padding:8px 14px;border-radius:999px;font:13px system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3)}
   .lw-signout{position:fixed;left:56px;bottom:6px;z-index:2147482000;font:11px system-ui,sans-serif;padding:3px 8px;border-radius:999px;border:1px solid rgba(127,127,127,.35);background:rgba(127,127,127,.08);color:inherit;opacity:.45;cursor:pointer}
   .lw-signout:hover{opacity:1}
+  .lw-changepw{left:auto;right:8px}
+  .lw-form{padding:6px 16px 4px;display:flex;flex-direction:column;gap:8px}
+  .lw-form input{border:1px solid var(--border,#d1d5db);border-radius:8px;padding:7px 10px;font:inherit;background:transparent;color:inherit}
+  .lw-err{color:#dc2626;font-size:12px;min-height:16px}
   `
   const el = document.createElement("style")
   el.textContent = css
@@ -301,9 +321,92 @@ function installSignOut(): void {
       }
     })
     document.body.appendChild(b)
+    const c = document.createElement("button")
+    c.type = "button"
+    c.className = "lw-signout lw-changepw"
+    c.textContent = T.changePw
+    c.title = T.changePw
+    c.addEventListener("click", () => openChangePassword())
+    document.body.appendChild(c)
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", add)
   else add()
+}
+
+function openChangePassword(): void {
+  ensureStyles()
+  const overlay = document.createElement("div")
+  overlay.className = "lw-overlay"
+  const modal = document.createElement("div")
+  modal.className = "lw-modal"
+  modal.style.width = "min(380px,94vw)"
+  const head = document.createElement("div")
+  head.className = "lw-head"
+  head.textContent = T.changePw
+  const form = document.createElement("form")
+  form.className = "lw-form"
+  const mk = (ph: string, ac: string) => {
+    const i = document.createElement("input")
+    i.type = "password"
+    i.placeholder = ph
+    i.autocomplete = ac
+    i.required = true
+    form.appendChild(i)
+    return i
+  }
+  const cur = mk(T.curPw, "current-password")
+  const nw = mk(T.newPw, "new-password")
+  const cf = mk(T.confirmPw, "new-password")
+  const err = document.createElement("div")
+  err.className = "lw-err"
+  form.appendChild(err)
+  const foot = document.createElement("div")
+  foot.className = "lw-foot"
+  const sp = document.createElement("span")
+  sp.className = "lw-spacer"
+  const cancel = document.createElement("button")
+  cancel.type = "button"
+  cancel.className = "lw-btn"
+  cancel.textContent = T.cancel
+  const ok = document.createElement("button")
+  ok.type = "submit"
+  ok.className = "lw-btn lw-primary"
+  ok.textContent = T.save
+  foot.append(sp, cancel, ok)
+  form.appendChild(foot)
+  modal.append(head, form)
+  overlay.appendChild(modal)
+  const close = () => overlay.remove()
+  cancel.addEventListener("click", close)
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close() })
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault()
+    err.textContent = ""
+    if (nw.value.length < 8) { err.textContent = T.pwShort; return }
+    if (nw.value !== cf.value) { err.textContent = T.pwMismatch; return }
+    ok.disabled = true
+    try {
+      const res = await apiFetch("/api/auth/password", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ current: cur.value, new: nw.value }),
+      })
+      if (!res.ok) {
+        let msg = `${res.status}`
+        try { const j = await res.json(); msg = j.error || msg } catch { /* ignore */ }
+        err.textContent = msg
+        return
+      }
+      close()
+      alert(T.pwDone)
+    } catch (ex) {
+      err.textContent = String(ex)
+    } finally {
+      ok.disabled = false
+    }
+  })
+  document.body.appendChild(overlay)
+  cur.focus()
 }
 
 // ---------------------------------------------------------------- localhost services

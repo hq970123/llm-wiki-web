@@ -121,10 +121,26 @@ impl Auth {
             .unwrap_or_default();
         let t = now();
         sessions.retain(|_, exp| *exp > t);
+        let mut stored = stored;
         if env_hash.is_some() {
             eprintln!("[auth] password pinned by LLM_WIKI_PASSWORD");
         } else if stored.password_hash.is_none() {
-            eprintln!("[auth] no account yet — first visitor sets the password");
+            // No account yet: start with the default password "admin"
+            // (change it after signing in via "Change password").
+            let default_pw = std::env::var("LLM_WIKI_DEFAULT_PASSWORD")
+                .ok()
+                .filter(|p| !p.is_empty())
+                .unwrap_or_else(|| "admin".to_string());
+            match hash_password(&default_pw) {
+                Ok(h) => {
+                    if let Ok(data) = serde_json::to_vec_pretty(&AuthFile { password_hash: Some(h.clone()) }) {
+                        let _ = write_private(&file, &data);
+                    }
+                    stored.password_hash = Some(h);
+                    eprintln!("[auth] no account yet — default password set; change it after signing in");
+                }
+                Err(e) => eprintln!("[auth] cannot set default password: {e}"),
+            }
         }
         Auth {
             file,
@@ -391,7 +407,7 @@ pub async fn handle_change_password(
     }
     if !st.auth.check(&body.current) {
         st.auth.record_failure();
-        return bad(StatusCode::UNAUTHORIZED, "Current password is wrong");
+        return bad(StatusCode::FORBIDDEN, "Current password is wrong");
     }
     if let Err(e) = st.auth.set_password(&body.new_password, false) {
         return bad(StatusCode::INTERNAL_SERVER_ERROR, &e);
