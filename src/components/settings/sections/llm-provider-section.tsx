@@ -15,6 +15,7 @@ import { testLlmConnection, testLlmFunction, type ProviderTestResult } from "@/l
 import { projectLlmProfile, resolveProjectLlmConfig } from "@/lib/llm-task-routing"
 import { saveProjectLlmOverride } from "@/lib/project-store"
 import { normalizeReasoningForProvider, resolveReasoningCapabilities } from "@/lib/reasoning-capabilities"
+import { WebLocalEndpointNote } from "../web-local-endpoint-note"
 
 const HTTP_HEADER_NAME_RE = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/
 
@@ -1005,6 +1006,7 @@ function EndpointField({ value, mode, placeholder, onChange }: EndpointFieldProp
         onBlur={handleBlur}
         placeholder={placeholder}
       />
+      <WebLocalEndpointNote url={value} />
       {showHint && (
         <div
           className={`flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs ${

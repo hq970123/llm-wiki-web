@@ -102,10 +102,14 @@ llm-wiki-web (Rust, axum + tokio)               server/
 | 功能 | 处理 |
 |---|---|
 | Claude Code CLI / Codex CLI 传输 | `*_detect` 返回 `installed:false`，`*_spawn` 拒绝（`LLM_WIKI_ALLOW_CLI=1` 且容器里装了 CLI 才放开） |
-| AnyTXT 本地全文检索 | 返回“Web 版不可用” |
+| AnyTXT 本地全文检索 | 返回“Web 版不可用”；设置页、聊天、深度研究里隐藏（已保存的“仅 AnyTXT”退回网页搜索） |
 | 在系统文件管理器中打开/定位（`open_project_folder`、`open_path_in_project`、`revealItemInDir`） | 返回错误提示 |
-| 开机自启、关闭行为、托盘、窗口主题 | no-op |
-| 浏览器扩展 Web Clipper | 扩展只会连用户本机的 127.0.0.1:19827，无法直接连到远程服务器；clip server 在容器内照常运行（供前端轮询），但扩展剪藏需要用户自行反代，未支持 |
+| 开机自启、关闭行为、托盘、窗口主题 | no-op；设置里「常规」分类隐藏 |
+| 检查更新（GitHub 桌面版发布） | 关闭，服务器通过重新部署镜像更新 |
+| Claude Code / Codex 预设 | 模型选择里隐藏 |
+| Ollama / LM Studio / 嵌入 / 多模态 / MinerU 的 localhost 地址 | 由服务器访问，localhost 指容器自身，私网默认被拦截；设置页在填本机/局域网地址时显示提示 |
+| 「允许免令牌访问」「允许局域网访问」 | Web 版隐藏；对外 `/api/v1`、`/mcp`、`/api/clipper` 由 Web 服务强制校验令牌（`/api/v1/health` 和 `/api/clipper/status` 除外），即使旧设置打开了免令牌也不放开 |
+| 浏览器扩展 Web Clipper | 扩展「连接设置」里服务器地址填 `https://<域名>`、访问令牌填设置页的 API 令牌；https 地址时扩展请求 `https://<域名>/api/clipper/{status,projects,project,clip}`，由 Web 服务校验令牌后转发到容器内 clip server。http 地址仍按桌面版/局域网 19827 端口处理 |
 | 内置 REST API / MCP | 默认开启。REST API 通过站点域名对外：`https://<域名>/api/v1/*`（用 设置 → API + MCP 里的访问令牌，`Authorization: Bearer <token>`）；远程 MCP（Streamable HTTP）：`https://<域名>/mcp`，同一令牌。容器内分别跑在 127.0.0.1:19828 / 19829，由 Web 服务转发。 |
 | “导出项目”保存位置 | 文件写到 `DATA_DIR/exports/` 后由浏览器下载 |
 | “导入文件夹 / 定时导入目录” | 选服务器上的文件夹（在 `DATA_DIR` 内），或用“从本机上传文件夹” |

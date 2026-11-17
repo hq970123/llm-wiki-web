@@ -228,7 +228,7 @@ export function ApiServerSection({ draft, setDraft }: Props) {
     if (!draft.apiEnabled) {
       return t("settings.sections.apiServer.statusDisabled", { defaultValue: "Disabled" })
     }
-    if (health?.allowUnauthenticated || draft.apiAllowUnauthenticated) {
+    if (!IS_WEB_BUILD && (health?.allowUnauthenticated || draft.apiAllowUnauthenticated)) {
       return t("settings.sections.apiServer.statusOpen", { defaultValue: "Running, no auth" })
     }
     if (serverStatus === "running" && health?.authConfigured === false && !draft.apiToken) {
@@ -255,7 +255,7 @@ export function ApiServerSection({ draft, setDraft }: Props) {
   const statusToneClass =
     !draft.apiEnabled
       ? "text-muted-foreground"
-      : (health?.allowUnauthenticated || draft.apiAllowUnauthenticated)
+      : (!IS_WEB_BUILD && (health?.allowUnauthenticated || draft.apiAllowUnauthenticated))
         ? "text-amber-700 dark:text-amber-400"
         : serverStatus === "running"
       ? "text-emerald-600 dark:text-emerald-400"
@@ -265,7 +265,7 @@ export function ApiServerSection({ draft, setDraft }: Props) {
           ? "text-muted-foreground"
           : "text-destructive"
 
-  const tokenStrength: "unused" | "missing" | "weak" | "ok" = draft.apiAllowUnauthenticated
+  const tokenStrength: "unused" | "missing" | "weak" | "ok" = !IS_WEB_BUILD && draft.apiAllowUnauthenticated
     ? "unused"
     : !draft.apiToken
       ? "missing"
@@ -312,6 +312,8 @@ export function ApiServerSection({ draft, setDraft }: Props) {
           </div>
         </label>
 
+        {!IS_WEB_BUILD && (
+          <>
         <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/50 dark:bg-amber-950/30">
           <input
             type="checkbox"
@@ -355,6 +357,8 @@ export function ApiServerSection({ draft, setDraft }: Props) {
             </p>
           </div>
         </label>
+          </>
+        )}
 
         <div className="grid grid-cols-1 gap-3 rounded-md border border-border/60 bg-background/40 p-3 text-sm sm:grid-cols-2">
           <div className="space-y-0.5">
@@ -496,7 +500,7 @@ export function ApiServerSection({ draft, setDraft }: Props) {
           <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <div className="space-y-1">
             <div>
-              {t("settings.sections.apiServer.tokenWarning", {
+              {IS_WEB_BUILD ? t("webUi.tokenWarning") : t("settings.sections.apiServer.tokenWarning", {
                 defaultValue:
                   "Keep this token secret. Anyone with the token on this machine can read your project files via localhost.",
               })}
@@ -693,6 +697,14 @@ export function ApiServerSection({ draft, setDraft }: Props) {
               : sampleMcpConfig}
           </pre>
         </div>
+        {IS_WEB_BUILD && (
+          <div className="rounded-md border border-border/60 bg-background/40 p-3">
+            <h3 className="text-sm font-semibold">{t("webUi.clipperTitle")}</h3>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              {t("webUi.clipperHint", { url: API_SERVER_BASE_URL })}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

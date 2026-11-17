@@ -17,6 +17,7 @@ import {
   FileText,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 import { invoke } from "@tauri-apps/api/core"
 import { disable as disableAutostart, enable as enableAutostart } from "@tauri-apps/plugin-autostart"
 import i18n from "@/i18n"
@@ -79,7 +80,7 @@ interface Category {
   icon: typeof Bot
 }
 
-const CATEGORIES: Category[] = [
+const ALL_CATEGORIES: Category[] = [
   { id: "general", labelKey: "settings.categories.general", icon: Settings },
   { id: "llm", labelKey: "settings.categories.llm", icon: Bot },
   { id: "embedding", labelKey: "settings.categories.embedding", icon: Binary },
@@ -96,6 +97,11 @@ const CATEGORIES: Category[] = [
   { id: "changelog", labelKey: "settings.categories.changelog", icon: History },
   { id: "about", labelKey: "settings.categories.about", icon: Info },
 ]
+
+/** Web build: "General" only holds desktop window options (autostart, close-to-tray). */
+const CATEGORIES: Category[] = IS_WEB_BUILD
+  ? ALL_CATEGORIES.filter((c) => c.id !== "general")
+  : ALL_CATEGORIES
 
 function initialDraft(
   llm: ReturnType<typeof useWikiStore.getState>["llmConfig"],

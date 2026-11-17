@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { openUrl } from "@tauri-apps/plugin-opener"
 import { apiServerStatus, clipServerStatus } from "@/commands/fs"
 import { Button } from "@/components/ui/button"
-import { API_SERVER_HEALTH_URL, API_SERVER_PORT } from "@/lib/api-server-constants"
+import { API_SERVER_BASE_URL, API_SERVER_HEALTH_URL, API_SERVER_PORT, IS_WEB_BUILD } from "@/lib/api-server-constants"
 import { useUpdateStore, hasAvailableUpdate } from "@/stores/update-store"
 import { checkForUpdates, toLatestReleaseUrl } from "@/lib/update-check"
 import { saveUpdateCheckState } from "@/lib/project-store"
@@ -96,7 +96,7 @@ export function AboutSection() {
     if (apiStatus === "running" && apiHealth?.enabled === false) {
       return t("settings.sections.about.apiDisabled")
     }
-    if (apiStatus === "running" && apiHealth?.allowUnauthenticated) {
+    if (!IS_WEB_BUILD && apiStatus === "running" && apiHealth?.allowUnauthenticated) {
       return t("settings.sections.about.apiOpen")
     }
     if (apiStatus === "running" && apiHealth?.authConfigured === false) {
@@ -106,8 +106,16 @@ export function AboutSection() {
   })()
   const rows: Array<{ label: string; value: string; mono?: boolean }> = [
     { label: t("settings.sections.about.version"), value: `v${__APP_VERSION__}`, mono: true },
-    { label: t("settings.sections.about.clipServer"), value: `${clipStatus}  @  127.0.0.1:19827`, mono: true },
-    { label: t("settings.sections.about.apiServer"), value: `${apiStatusDisplay}  @  127.0.0.1:${API_SERVER_PORT}`, mono: true },
+    {
+      label: t("settings.sections.about.clipServer"),
+      value: IS_WEB_BUILD ? `${clipStatus}  @  ${API_SERVER_BASE_URL}/api/clipper` : `${clipStatus}  @  127.0.0.1:19827`,
+      mono: true,
+    },
+    {
+      label: t("settings.sections.about.apiServer"),
+      value: IS_WEB_BUILD ? `${apiStatusDisplay}  @  ${API_SERVER_BASE_URL}/api/v1` : `${apiStatusDisplay}  @  127.0.0.1:${API_SERVER_PORT}`,
+      mono: true,
+    },
   ]
 
   // About panel = user-initiated navigation. They came here on
@@ -146,7 +154,9 @@ export function AboutSection() {
         ))}
       </div>
 
-      {/* ── Update check card ──────────────────────────────────── */}
+      {!IS_WEB_BUILD && (
+      <>
+{/* ── Update check card ──────────────────────────────────── */}
       <div className="space-y-3 rounded-md border p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -204,6 +214,8 @@ export function AboutSection() {
           {t("settings.sections.about.autoCheck")}
         </label>
       </div>
+      </>
+      )}
 
       <div className="rounded-md border p-4 text-sm">
         <div className="font-medium">LLM Wiki</div>

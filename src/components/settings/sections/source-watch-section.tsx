@@ -7,6 +7,7 @@ import {
   SOURCE_WATCH_FILE_TYPE_GROUPS,
 } from "@/lib/source-watch-config"
 import { MAX_USER_CONCURRENCY } from "@/lib/concurrency-limits"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 
 interface Props {
   draft: SettingsDraft
@@ -82,6 +83,11 @@ export function SourceWatchSection({ draft, setDraft, projectReady }: Props) {
               "Monitor raw/sources for external changes and choose which files are allowed into automatic ingest.",
           })}
         </p>
+        {IS_WEB_BUILD && (
+          <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+            {t("webUi.sourceWatchNote")}
+          </p>
+        )}
       </div>
 
       <div className="space-y-4 rounded-lg border border-border/60 bg-muted/20 p-4">

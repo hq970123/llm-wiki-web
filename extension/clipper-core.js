@@ -20,8 +20,15 @@
     if (parsed.pathname !== "/" || parsed.search || parsed.hash) {
       throw new Error("Enter only the server origin, without a path, query, or fragment");
     }
-    if (!parsed.port) parsed.port = "19827";
+    // Desktop app / LAN: plain http on the Clip Server port (19827).
+    // Self-hosted web version: https site address, clip API under /api/clipper.
+    if (!parsed.port && parsed.protocol === "http:") parsed.port = "19827";
     return parsed.origin;
+  }
+
+  function apiBaseUrl(serverUrl) {
+    const parsed = new URL(serverUrl);
+    return parsed.protocol === "https:" ? `${parsed.origin}/api/clipper` : parsed.origin;
   }
 
   async function loadSettings() {
@@ -62,7 +69,7 @@
 
     for (const baseUrl of urls) {
       try {
-        const response = await fetch(`${baseUrl}${path}`, {
+        const response = await fetch(`${apiBaseUrl(baseUrl)}${path}`, {
           ...options,
           headers: requestHeaders(connection?.accessToken, options),
         });
@@ -216,6 +223,7 @@
     DEFAULT_API_URLS,
     MAX_EXTRACTED_CONTENT_CHARS,
     normalizeServerUrl,
+    apiBaseUrl,
     loadSettings,
     clipFetch,
     extractActiveTab,

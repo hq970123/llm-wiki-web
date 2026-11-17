@@ -7,6 +7,7 @@ import type {
   SerpApiEngine,
 } from "@/stores/wiki-store"
 import { hasConfiguredAnyTxt, normalizeAnyTxtConfig } from "@/lib/anytxt-search"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 
 export interface WebSearchResult {
   title: string
@@ -122,7 +123,7 @@ export function hasConfiguredDeepResearchSources(config: SearchApiConfig): boole
   const webConfigured = hasConfiguredSearchProvider(resolved)
   const anyTxtConfigured = hasConfiguredAnyTxt(resolved.anyTxt)
 
-  if (source === "web") return webConfigured
+  if (source === "web" || IS_WEB_BUILD) return webConfigured
   if (source === "anytxt") return anyTxtConfigured
   return webConfigured || anyTxtConfigured
 }

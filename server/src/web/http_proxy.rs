@@ -278,10 +278,59 @@ pub async fn handle_local_api_forward(State(st): State<AppState>, Path(rest): Pa
     forward_local(19828, &rest, req).await
 }
 
+/// The internal services trust loopback callers, and the desktop
+/// "allow access without a token" switch would otherwise open them to the
+/// whole internet through this proxy. Public routes therefore always demand
+/// the API access token here; with no token configured they stay closed.
+fn require_api_token(st: &AppState, req: &Request) -> Option<Response> {
+    let headers: Vec<(String, String)> = req
+        .headers()
+        .iter()
+        .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.as_str().to_ascii_lowercase(), v.to_string())))
+        .collect();
+    let query = req.uri().query().unwrap_or("");
+    if crate::api_server::is_token_authorized(&st.app, query, &headers) {
+        return None;
+    }
+    let mut res = Json(json!({"ok": false, "error": "Missing or invalid API token"})).into_response();
+    *res.status_mut() = StatusCode::UNAUTHORIZED;
+    res.headers_mut().insert("www-authenticate", HeaderValue::from_static("Bearer"));
+    Some(res)
+}
+
+/// Public `/api/clipper/*` -> internal clip server, for the browser
+/// extension. The clip server trusts loopback callers (which this proxy is),
+/// so the API access token is checked here. Only the endpoints the extension
+/// uses are exposed; `/status` stays open so the popup can probe the address.
+pub async fn handle_public_clipper(State(st): State<AppState>, Path(rest): Path<String>, req: Request) -> Response {
+    if !st.cfg.enable_clip_server {
+        return proxy_error(StatusCode::SERVICE_UNAVAILABLE, "clip server disabled".into());
+    }
+    let method = req.method().as_str().to_ascii_uppercase();
+    let allowed = matches!(
+        (method.as_str(), rest.as_str()),
+        ("GET", "status") | ("GET", "projects") | ("GET", "project") | ("POST", "clip")
+    );
+    if !allowed {
+        return proxy_error(StatusCode::NOT_FOUND, "not found".into());
+    }
+    if rest != "status" {
+        if let Some(res) = require_api_token(&st, &req) {
+            return res;
+        }
+    }
+    forward_local(19827, &rest, req).await
+}
+
 /// Public `/api/v1/*` -> internal API server (it enforces the API token).
 pub async fn handle_public_api(State(st): State<AppState>, rest: String, req: Request) -> Response {
     if !st.cfg.enable_api_server {
         return proxy_error(StatusCode::SERVICE_UNAVAILABLE, "API server disabled (LLM_WIKI_ENABLE_API_SERVER=0)".into());
+    }
+    if rest != "v1/health" {
+        if let Some(res) = require_api_token(&st, &req) {
+            return res;
+        }
     }
     forward_local(19828, &format!("api/{rest}"), req).await
 }
@@ -290,6 +339,9 @@ pub async fn handle_public_api(State(st): State<AppState>, rest: String, req: Re
 pub async fn handle_mcp_forward(State(st): State<AppState>, req: Request) -> Response {
     if !st.cfg.enable_api_server || !st.cfg.enable_mcp_http {
         return proxy_error(StatusCode::SERVICE_UNAVAILABLE, "remote MCP disabled".into());
+    }
+    if let Some(res) = require_api_token(&st, &req) {
+        return res;
     }
     forward_local(19829, "mcp", req).await
 }

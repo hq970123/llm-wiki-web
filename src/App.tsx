@@ -20,6 +20,7 @@ import { WelcomeScreen } from "@/components/project/welcome-screen"
 import { CreateProjectDialog } from "@/components/project/create-project-dialog"
 import type { WikiProject } from "@/types/wiki"
 import { useAppDialog } from "@/stores/app-dialog-store"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 
 function applyDocumentZoom(level: number) {
   document.documentElement.style.fontSize = `${BASE_FONT_SIZE_PX * level}px`
@@ -223,6 +224,9 @@ function App() {
     let cancelled = false
     const timer = setTimeout(async () => {
       if (cancelled) return
+      // Web build: the server is updated by redeploying the image, so
+      // desktop release checks / download banners don't apply.
+      if (IS_WEB_BUILD) return
       try {
         const { loadUpdateCheckState, saveUpdateCheckState } = await import(
           "@/lib/project-store"

@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label"
 import { AlertTriangle } from "lucide-react"
 import { validateProxyUrl } from "@/lib/proxy-config"
 import type { SettingsDraft, DraftSetter } from "../settings-types"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 
 interface Props {
   draft: SettingsDraft
@@ -32,6 +33,11 @@ export function NetworkSection({ draft, setDraft }: Props) {
               "Route all outbound HTTP requests (LLM, embedding, search, update check) through a proxy. Changes apply on Save — no restart needed.",
           })}
         </p>
+        {IS_WEB_BUILD && (
+          <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+            {t("webUi.networkNote")}
+          </p>
+        )}
       </div>
 
       <label className="flex items-center gap-2">

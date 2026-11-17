@@ -12,6 +12,7 @@ import {
   type SearchProviderOverride,
 } from "@/stores/wiki-store"
 import { normalizeAnyTxtConfig } from "@/lib/anytxt-search"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 import {
   SEARXNG_CATEGORY_OPTIONS,
   SERPAPI_ENGINE_OPTIONS,
@@ -172,7 +173,9 @@ export function WebSearchSection() {
         </p>
       </div>
 
-      <div className="space-y-2 rounded-lg border p-3">
+      {!IS_WEB_BUILD && (
+      <>
+<div className="space-y-2 rounded-lg border p-3">
         <div>
           <Label>{t("settings.sections.webSearch.deepResearchSources")}</Label>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -200,8 +203,12 @@ export function WebSearchSection() {
           ))}
         </div>
       </div>
+      </>
+      )}
 
-      <div className="space-y-3 rounded-lg border p-3">
+      {!IS_WEB_BUILD && (
+      <>
+<div className="space-y-3 rounded-lg border p-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <Label>{t("settings.sections.webSearch.anyTxtTitle")}</Label>
@@ -287,6 +294,8 @@ export function WebSearchSection() {
           {t("settings.sections.webSearch.anyTxtHint")}
         </p>
       </div>
+      </>
+      )}
 
       <div className="space-y-2">
         <Label>{t("settings.sections.webSearch.webProviders")}</Label>

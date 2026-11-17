@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import type { SettingsDraft, DraftSetter } from "../settings-types"
 import type { MineruLocalBackend, MineruModelVersion, MineruParseMethod } from "@/stores/wiki-store"
 import { testMineruConnection } from "@/lib/mineru"
+import { WebLocalEndpointNote } from "../web-local-endpoint-note"
 
 interface Props {
   draft: SettingsDraft
@@ -148,6 +149,7 @@ export function MineruSection({ draft, setDraft }: Props) {
                   }}
                   placeholder="http://127.0.0.1:8000"
                 />
+                <WebLocalEndpointNote url={draft.mineruLocalEndpoint} />
                 <p className="text-xs text-muted-foreground">
                   {t("settings.sections.mineru.localInfo", {
                     defaultValue:

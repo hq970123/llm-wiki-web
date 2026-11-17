@@ -16,6 +16,7 @@
 //!   GET  /api/fs/list         server-side folder picker
 //!   POST /api/fs/mkdir
 //!   ANY  /api/clip/*          -> internal clip server (127.0.0.1:19827)
+//!   ANY  /api/clipper/*       -> clip server for the browser extension (API token)
 //!   ANY  /api/local-api/*     -> internal REST API (127.0.0.1:19828, opt-in)
 //!   GET  /*                   Vite dist (SPA fallback to index.html)
 
@@ -234,6 +235,7 @@ async fn serve(cfg: WebConfig) {
         // Public API + remote MCP: authenticated by the API access token
         // (Settings -> API + MCP), not by the web session cookie.
         .route("/mcp", any(http_proxy::handle_mcp_forward))
+        .route("/api/clipper/{*rest}", any(http_proxy::handle_public_clipper))
         .route("/api/{*rest}", any(public_api_or_not_found));
 
     let static_files = tower_http::services::ServeDir::new(&cfg.dist_dir)

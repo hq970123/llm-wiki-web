@@ -1,4 +1,5 @@
 import { anyTxtSearchSmart, hasConfiguredAnyTxt } from "./anytxt-search"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 import { hasConfiguredSearchProvider, resolveSearchConfig, webSearch } from "./web-search"
 import { streamChat } from "./llm-client"
 import { currentWikiDate } from "./ingest"
@@ -409,7 +410,8 @@ export async function collectResearchSources(
 ): Promise<ResearchSourceCollection> {
   const resolvedSearchConfig = resolveSearchConfig(searchConfig)
   const sourceMode = resolvedSearchConfig.deepResearchSource ?? "web"
-  const useWeb = sourceMode === "web" || sourceMode === "both"
+  // Web build has no AnyTXT, so a saved "anytxt only" choice falls back to web.
+  const useWeb = IS_WEB_BUILD || sourceMode === "web" || sourceMode === "both"
   const useAnyTxt = hasAnyTxtSource(resolvedSearchConfig) && hasConfiguredAnyTxt(resolvedSearchConfig.anyTxt)
   const webConfigured = hasConfiguredSearchProvider(resolvedSearchConfig)
   const allResults: import("./web-search").WebSearchResult[] = []

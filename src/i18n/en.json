@@ -1218,6 +1218,14 @@
     "close": "Close",
     "text": "Text",
     "pdfText": "PDF text",
-    "mcpHttpHint": "Remote MCP (streamable HTTP): add the config below to your MCP client (Claude Code, Cursor, Cherry Studio…). The client connects straight to this site's /mcp address with the access token — nothing to install locally."
+    "mcpHttpHint": "Remote MCP (streamable HTTP): add the config below to your MCP client (Claude Code, Cursor, Cherry Studio…). The client connects straight to this site's /mcp address with the access token — nothing to install locally.",
+    "tokenWarning": "This site is on the public internet. Anyone holding this token can read and change your wiki through /api/v1, /mcp and the clipper endpoint. Keep it secret and regenerate it if it leaks.",
+    "clipperTitle": "Browser clipper extension",
+    "clipperHint": "In the LLM Wiki Clipper extension, open Connection settings, set Server address to {{url}} and paste the access token above. Clips go to {{url}}/api/clipper and need the token.",
+    "localEndpointNote": "In the web version this address is called by the server, not your computer: localhost / LAN addresses point at the server itself and are blocked by default. Use an address the server can reach (e.g. a public HTTPS URL or a tunnel).",
+    "openInNewTab": "Open in new tab",
+    "sourceWatchNote": "Web version: this watches folders on the server (under the data directory), not on your computer. Files you upload into the project's raw/sources are picked up.",
+    "scheduledImportNote": "Web version: the folder is on the server (under the data directory), not on your computer. Upload files into it, then they are imported on schedule.",
+    "networkNote": "Web version: the proxy is used by the server for its outbound requests, so its address must be reachable from the server (127.0.0.1 means the server itself)."
   }
 }

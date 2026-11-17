@@ -1218,6 +1218,14 @@
     "close": "关闭",
     "text": "文本",
     "pdfText": "PDF 文本",
-    "mcpHttpHint": "远程 MCP（Streamable HTTP）：把下面的配置填进 MCP 客户端（Claude Code、Cursor、Cherry Studio 等），客户端会用访问令牌直接连接本站的 /mcp 地址，本地无需安装任何东西。"
+    "mcpHttpHint": "远程 MCP（Streamable HTTP）：把下面的配置填进 MCP 客户端（Claude Code、Cursor、Cherry Studio 等），客户端会用访问令牌直接连接本站的 /mcp 地址，本地无需安装任何东西。",
+    "tokenWarning": "本站在公网上。拿到这个令牌的人都能通过 /api/v1、/mcp 和剪藏接口读写你的知识库。请妥善保管，泄露后立即重新生成。",
+    "clipperTitle": "浏览器剪藏插件",
+    "clipperHint": "在 LLM Wiki Clipper 插件里打开「连接设置」，服务器地址填 {{url}}，访问令牌填上面的令牌。剪藏会发到 {{url}}/api/clipper，必须带令牌。",
+    "localEndpointNote": "Web 版里这个地址由服务器去访问，而不是你的电脑：localhost 或局域网地址指向服务器自身，且默认被拦截。请填服务器能访问到的地址（例如公网 HTTPS 地址或内网穿透地址）。",
+    "openInNewTab": "在新标签页打开",
+    "sourceWatchNote": "Web 版：这里监听的是服务器上的文件夹（数据目录下），不是你电脑上的。上传到项目 raw/sources 的文件会被自动发现。",
+    "scheduledImportNote": "Web 版：这个文件夹在服务器上（数据目录下），不是你电脑上的。把文件上传进去后会按计划导入。",
+    "networkNote": "Web 版：代理由服务器在对外请求时使用，地址必须是服务器能访问到的（127.0.0.1 指服务器自己）。"
   }
 }

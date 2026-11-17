@@ -17,6 +17,7 @@ import {
 import { testEmbeddingConnection, testEmbeddingFunction, type ProviderTestResult } from "@/lib/connection-tests"
 import type { SettingsDraft, DraftSetter } from "../settings-types"
 import { MAX_USER_CONCURRENCY, clampUserConcurrency } from "@/lib/concurrency-limits"
+import { WebLocalEndpointNote } from "../web-local-endpoint-note"
 
 interface Props {
   draft: SettingsDraft
@@ -210,6 +211,7 @@ export function EmbeddingSection({ draft, setDraft }: Props) {
               onChange={(e) => setDraft("embeddingEndpoint", e.target.value)}
               placeholder="http://127.0.0.1:1234/v1/embeddings"
             />
+            <WebLocalEndpointNote url={draft.embeddingEndpoint} />
             <p className="text-xs text-muted-foreground">
               {t("settings.sections.embedding.endpointHint")}
             </p>

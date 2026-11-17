@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { SettingsDraft, DraftSetter } from "../settings-types"
 import { MAX_USER_CONCURRENCY, clampUserConcurrency } from "@/lib/concurrency-limits"
+import { WebLocalEndpointNote } from "../web-local-endpoint-note"
 
 interface Props {
   draft: SettingsDraft
@@ -173,6 +174,7 @@ export function MultimodalSection({ draft, setDraft }: Props) {
                     onChange={(e) => setDraft("multimodalOllamaUrl", e.target.value)}
                     placeholder="http://localhost:11434"
                   />
+                  <WebLocalEndpointNote url={draft.multimodalOllamaUrl} />
                 </div>
               )}
 
@@ -192,6 +194,7 @@ export function MultimodalSection({ draft, setDraft }: Props) {
                         : "http://localhost:1234/v1"
                     }
                   />
+                  <WebLocalEndpointNote url={draft.multimodalCustomEndpoint} />
                   <p className="text-xs text-muted-foreground">
                     {draft.multimodalProvider === "azure"
                       ? t(

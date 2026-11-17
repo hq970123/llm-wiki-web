@@ -1218,6 +1218,14 @@
     "close": "Chiudi",
     "text": "Testo",
     "pdfText": "Testo PDF",
-    "mcpHttpHint": "MCP remoto (HTTP streamable): aggiungi la configurazione qui sotto al tuo client MCP. Il client si collega direttamente all'indirizzo /mcp di questo sito con il token di accesso."
+    "mcpHttpHint": "MCP remoto (HTTP streamable): aggiungi la configurazione qui sotto al tuo client MCP. Il client si collega direttamente all'indirizzo /mcp di questo sito con il token di accesso.",
+    "tokenWarning": "Questo sito è su Internet. Chiunque abbia questo token può leggere e modificare la tua wiki tramite /api/v1, /mcp e l'endpoint del clipper. Tienilo segreto e rigeneralo se viene esposto.",
+    "clipperTitle": "Estensione clipper del browser",
+    "clipperHint": "Nell'estensione LLM Wiki Clipper apri le impostazioni di connessione, imposta l'indirizzo del server su {{url}} e incolla il token qui sopra. I clip vanno a {{url}}/api/clipper e richiedono il token.",
+    "localEndpointNote": "Nella versione web questo indirizzo viene chiamato dal server, non dal tuo computer: localhost e gli indirizzi LAN puntano al server stesso e sono bloccati per impostazione predefinita. Usa un indirizzo raggiungibile dal server (es. un URL HTTPS pubblico o un tunnel).",
+    "openInNewTab": "Apri in una nuova scheda",
+    "sourceWatchNote": "Versione web: vengono monitorate cartelle sul server (nella directory dei dati), non sul tuo computer. I file caricati in raw/sources del progetto vengono rilevati.",
+    "scheduledImportNote": "Versione web: la cartella è sul server (nella directory dei dati), non sul tuo computer. Carica i file lì e verranno importati secondo la pianificazione.",
+    "networkNote": "Versione web: il proxy è usato dal server per le richieste in uscita, quindi il suo indirizzo deve essere raggiungibile dal server (127.0.0.1 è il server stesso)."
   }
 }

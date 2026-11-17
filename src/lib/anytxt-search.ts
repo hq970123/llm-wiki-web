@@ -4,6 +4,7 @@ import { normalizePath } from "@/lib/path-utils"
 import { streamChat } from "@/lib/llm-client"
 import type { WebSearchResult } from "./web-search"
 import { resolveIngestReasoning } from "@/lib/reasoning-capabilities"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 
 export const DEFAULT_ANYTXT_ENDPOINT = "http://127.0.0.1:9920"
 export const DEFAULT_ANYTXT_FILTER_EXT = "*"
@@ -21,6 +22,9 @@ export function normalizeAnyTxtConfig(config?: AnyTxtConfig, _projectPath?: stri
 }
 
 export function hasConfiguredAnyTxt(config?: AnyTxtConfig): boolean {
+  // Web build: AnyTXT is a Windows desktop indexer on the user's own PC,
+  // unreachable from a hosted server.
+  if (IS_WEB_BUILD) return false
   const resolved = normalizeAnyTxtConfig(config)
   return Boolean(resolved.enabled && resolved.endpoint.trim())
 }

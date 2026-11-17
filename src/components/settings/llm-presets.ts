@@ -1,4 +1,5 @@
 import type { AzureModelFamily, CustomLlmPreset } from "@/stores/wiki-store"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 
 /**
  * Curated LLM provider presets.
@@ -535,8 +536,13 @@ export const LLM_PRESETS: LlmPreset[] = [
 ]
 
 export function availableLlmPresets(customPresets: CustomLlmPreset[] = []): LlmPreset[] {
+  // Web build: Claude Code / Codex run as local CLIs on the user's own
+  // machine, which a hosted server can't reach.
+  const builtIns = IS_WEB_BUILD
+    ? LLM_PRESETS.filter((p) => p.provider !== "claude-code" && p.provider !== "codex-cli")
+    : LLM_PRESETS
   return [
-    ...LLM_PRESETS,
+    ...builtIns,
     ...customPresets.map((preset) => ({
       id: preset.id,
       label: preset.label,
