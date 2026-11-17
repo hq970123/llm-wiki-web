@@ -55,6 +55,7 @@ pub struct WebConfig {
     pub allow_cli: bool,
     pub enable_api_server: bool,
     pub enable_clip_server: bool,
+    pub enable_mcp_http: bool,
     pub max_upload_bytes: usize,
 }
 
@@ -107,7 +108,8 @@ fn load_config() -> WebConfig {
         resource_dir,
         allow_private_proxy: env_flag("LLM_WIKI_PROXY_ALLOW_PRIVATE", false),
         allow_cli: env_flag("LLM_WIKI_ALLOW_CLI", false),
-        enable_api_server: env_flag("LLM_WIKI_ENABLE_API_SERVER", false),
+        enable_api_server: env_flag("LLM_WIKI_ENABLE_API_SERVER", true),
+        enable_mcp_http: env_flag("LLM_WIKI_ENABLE_MCP_HTTP", true),
         enable_clip_server: env_flag("LLM_WIKI_ENABLE_CLIP_SERVER", true),
         max_upload_bytes: std::env::var("MAX_UPLOAD_MB")
             .ok()
@@ -186,6 +188,9 @@ fn init_app(cfg: &WebConfig) -> AppHandle {
     }
     if cfg.enable_api_server {
         crate::api_server::start_api_server(app.clone());
+        if cfg.enable_mcp_http {
+            spawn_mcp_http_server();
+        }
     }
     app
 }
@@ -217,7 +222,6 @@ async fn serve(cfg: WebConfig) {
         .route("/api/clip/{*rest}", any(http_proxy::handle_clip_forward))
         .route("/api/local-api/{*rest}", any(http_proxy::handle_local_api_forward))
         .route("/api/auth/password", post(auth::handle_change_password))
-        .route("/api/{*rest}", any(api_not_found))
         .route_layer(middleware::from_fn_with_state(state.clone(), require_session));
 
     let public = Router::new()
@@ -226,7 +230,11 @@ async fn serve(cfg: WebConfig) {
         .route("/api/auth/login", post(auth::handle_login))
         .route("/api/auth/logout", post(auth::handle_logout))
         .route("/logout", get(auth::handle_logout_get))
-        .route("/login", get(login_page));
+        .route("/login", get(login_page))
+        // Public API + remote MCP: authenticated by the API access token
+        // (Settings -> API + MCP), not by the web session cookie.
+        .route("/mcp", any(http_proxy::handle_mcp_forward))
+        .route("/api/{*rest}", any(public_api_or_not_found));
 
     let static_files = tower_http::services::ServeDir::new(&cfg.dist_dir)
         .append_index_html_on_directories(true)
@@ -353,6 +361,54 @@ async fn handle_emit(State(st): State<AppState>, Json(body): Json<Value>) -> imp
     st.app
         .emit_value(&event, body.get("payload").cloned().unwrap_or(Value::Null));
     (StatusCode::OK, Json(json!({"ok": true})))
+}
+
+/// `/api/v1/*` is the token-protected REST API (forwarded to the internal
+/// API server); every other unknown `/api/*` path is a JSON 404.
+async fn public_api_or_not_found(
+    State(st): State<AppState>,
+    axum::extract::Path(rest): axum::extract::Path<String>,
+    req: Request,
+) -> Response {
+    if rest == "v1" || rest.starts_with("v1/") {
+        return http_proxy::handle_public_api(State(st), rest, req).await;
+    }
+    api_not_found().await
+}
+
+/// Runs the bundled MCP server (Node, streamable HTTP on 127.0.0.1:19829)
+/// and restarts it if it exits. Skipped when node or the entry is missing.
+fn spawn_mcp_http_server() {
+    let entry = std::env::var("MCP_SERVER_ENTRY")
+        .unwrap_or_else(|_| "/app/mcp-server/dist/src/index.js".into());
+    if !std::path::Path::new(&entry).is_file() {
+        eprintln!("[mcp] {entry} not found; remote MCP disabled");
+        return;
+    }
+    std::thread::spawn(move || {
+        let mut delay = 2u64;
+        loop {
+            let started = std::time::Instant::now();
+            match std::process::Command::new("node")
+                .arg(&entry)
+                .env("LLM_WIKI_MCP_HTTP_PORT", "19829")
+                .env("LLM_WIKI_API_BASE_URL", "http://127.0.0.1:19828")
+                .status()
+            {
+                Ok(status) => eprintln!("[mcp] server exited: {status}"),
+                Err(e) => {
+                    eprintln!("[mcp] cannot start node: {e}; remote MCP disabled");
+                    return;
+                }
+            }
+            if started.elapsed().as_secs() > 60 {
+                delay = 2;
+            } else {
+                delay = (delay * 2).min(60);
+            }
+            std::thread::sleep(std::time::Duration::from_secs(delay));
+        }
+    });
 }
 
 async fn api_not_found() -> Response {

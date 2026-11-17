@@ -14,7 +14,7 @@ import { apiServerStatus, mcpServerEntryPath } from "@/commands/fs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { API_SERVER_BASE_URL, API_SERVER_HEALTH_URL } from "@/lib/api-server-constants"
+import { API_SERVER_BASE_URL, API_SERVER_HEALTH_URL, IS_WEB_BUILD, MCP_HTTP_URL } from "@/lib/api-server-constants"
 import { generateApiToken } from "@/lib/api-token"
 import { useWikiStore } from "@/stores/wiki-store"
 import type { SettingsDraft, DraftSetter } from "../settings-types"
@@ -85,7 +85,7 @@ export function ApiServerSection({ draft, setDraft }: Props) {
       .catch(() => {
         if (alive) setHealth(null)
       })
-    mcpServerEntryPath()
+    ;(IS_WEB_BUILD ? Promise.resolve(MCP_HTTP_URL) : mcpServerEntryPath())
       .then((path) => {
         if (!alive) return
         setMcpEntryPath(path)
@@ -149,6 +149,22 @@ export function ApiServerSection({ draft, setDraft }: Props) {
         : draft.apiAllowUnauthenticated
           ? {}
           : { LLM_WIKI_API_TOKEN: "<your-token>" }
+    if (IS_WEB_BUILD) {
+      const token = env.LLM_WIKI_API_TOKEN
+      return JSON.stringify(
+        {
+          mcpServers: {
+            "llm-wiki": {
+              type: "http",
+              url: MCP_HTTP_URL,
+              ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+            },
+          },
+        },
+        null,
+        2,
+      )
+    }
     return JSON.stringify(
       {
         mcpServers: {
@@ -654,7 +670,7 @@ export function ApiServerSection({ draft, setDraft }: Props) {
             </Button>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            {t("settings.sections.apiServer.mcpUsageHint", {
+            {IS_WEB_BUILD ? t("webUi.mcpHttpHint") : t("settings.sections.apiServer.mcpUsageHint", {
               defaultValue:
                 "Build once with `npm run mcp:build`, then configure your MCP client to run the server below. Use LLM_WIKI_API_TOKEN unless unauthenticated access is enabled.",
             })}

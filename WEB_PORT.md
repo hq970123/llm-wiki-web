@@ -106,7 +106,7 @@ llm-wiki-web (Rust, axum + tokio)               server/
 | 在系统文件管理器中打开/定位（`open_project_folder`、`open_path_in_project`、`revealItemInDir`） | 返回错误提示 |
 | 开机自启、关闭行为、托盘、窗口主题 | no-op |
 | 浏览器扩展 Web Clipper | 扩展只会连用户本机的 127.0.0.1:19827，无法直接连到远程服务器；clip server 在容器内照常运行（供前端轮询），但扩展剪藏需要用户自行反代，未支持 |
-| 内置 REST API（19828）/ MCP | 默认关闭；`LLM_WIKI_ENABLE_API_SERVER=1` 时在容器内 127.0.0.1:19828 启动，并在已登录的 `/api/local-api/*` 下可访问（其自身 token 校验仍然有效） |
+| 内置 REST API / MCP | 默认开启。REST API 通过站点域名对外：`https://<域名>/api/v1/*`（用 设置 → API + MCP 里的访问令牌，`Authorization: Bearer <token>`）；远程 MCP（Streamable HTTP）：`https://<域名>/mcp`，同一令牌。容器内分别跑在 127.0.0.1:19828 / 19829，由 Web 服务转发。 |
 | “导出项目”保存位置 | 文件写到 `DATA_DIR/exports/` 后由浏览器下载 |
 | “导入文件夹 / 定时导入目录” | 选服务器上的文件夹（在 `DATA_DIR` 内），或用“从本机上传文件夹” |
 
@@ -127,7 +127,8 @@ llm-wiki-web (Rust, axum + tokio)               server/
 | `LLM_WIKI_PROXY_ALLOW_PRIVATE` | `0` | `1` = 允许 `/api/proxy` 访问私网/回环地址 |
 | `LLM_WIKI_ALLOW_CLI` | `0` | `1` = 允许 Claude/Codex CLI 命令 |
 | `LLM_WIKI_ENABLE_CLIP_SERVER` | `1` | 容器内 clip server |
-| `LLM_WIKI_ENABLE_API_SERVER` | `0` | 容器内 REST API (19828) |
+| `LLM_WIKI_ENABLE_API_SERVER` | `1` | REST API（对外 `/api/v1/*`） |
+| `LLM_WIKI_ENABLE_MCP_HTTP` | `1` | 远程 MCP（对外 `/mcp`，需 API 开启） |
 | `LLM_WIKI_KEEP_HOME` | `0` | `1` = 不把 `HOME` 改到 `DATA_DIR/home` |
 | `MAX_UPLOAD_MB` | `512` | 单次请求体上限 |
 | `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` | — | 也可在设置页面配置（与桌面版相同，`set_proxy_env`） |

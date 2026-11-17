@@ -1217,6 +1217,7 @@
     "noProjectOpen": "Nessun progetto aperto",
     "close": "Chiudi",
     "text": "Testo",
-    "pdfText": "Testo PDF"
+    "pdfText": "Testo PDF",
+    "mcpHttpHint": "MCP remoto (HTTP streamable): aggiungi la configurazione qui sotto al tuo client MCP. Il client si collega direttamente all'indirizzo /mcp di questo sito con il token di accesso."
   }
 }

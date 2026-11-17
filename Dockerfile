@@ -16,6 +16,16 @@ COPY index.html vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.jso
 COPY src ./src
 RUN npm run build:web
 
+############################ 1b) MCP server (Node, remote MCP over HTTP) ############################
+FROM node:22-bookworm-slim AS mcp
+WORKDIR /mcp
+COPY mcp-server/package.json mcp-server/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY mcp-server/tsconfig.json ./
+COPY mcp-server/src ./src
+COPY mcp-server/test ./test
+RUN npm run build && npm prune --omit=dev
+
 ############################ 2) backend (Rust, axum server) ############################
 FROM rust:1-bookworm AS server
 RUN apt-get update \
@@ -31,8 +41,8 @@ WORKDIR /src/server
 # mold links the (large: lancedb/datafusion) binary much faster and with
 # far less memory than GNU ld.
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
-ARG BUILD_JOBS=
-RUN if [ -n "$BUILD_JOBS" ]; then export CARGO_BUILD_JOBS="$BUILD_JOBS"; fi; \
+ARG CARGO_BUILD_JOBS=
+RUN if [ -n "$CARGO_BUILD_JOBS" ]; then export CARGO_BUILD_JOBS; fi; \
     cargo build --release --locked --bin llm-wiki-web \
  && cp target/release/llm-wiki-web /llm-wiki-web
 
@@ -59,6 +69,10 @@ RUN apt-get update \
 COPY --from=server /llm-wiki-web /app/llm-wiki-web
 COPY --from=pdfium /libpdfium.so /app/libpdfium.so
 COPY --from=web /src/dist /app/dist
+COPY --from=mcp /usr/local/bin/node /usr/local/bin/node
+COPY --from=mcp /mcp/package.json /app/mcp-server/package.json
+COPY --from=mcp /mcp/node_modules /app/mcp-server/node_modules
+COPY --from=mcp /mcp/dist /app/mcp-server/dist
 
 ENV PORT=7860 \
     BIND=0.0.0.0 \

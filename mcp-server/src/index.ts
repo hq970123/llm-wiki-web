@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 import { Server } from "@modelcontextprotocol/sdk/server/index.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js"
+import { AsyncLocalStorage } from "node:async_hooks"
+import { randomUUID, timingSafeEqual } from "node:crypto"
+import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from "node:http"
 import {
   CallToolRequestSchema,
   ErrorCode,
+  isInitializeRequest,
   ListToolsRequestSchema,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js"
@@ -24,9 +29,31 @@ const DEFAULT_PROJECT_ID = "current"
 const MAX_TEXT_BYTES = 120_000
 const MAX_WRITE_PAGE_BYTES = 2 * 1024 * 1024
 
-const client = new LlmWikiApiClient()
-const projectBinding = new McpProjectBinding()
+// One API client + project binding per MCP session. stdio has a single
+// implicit session; the HTTP transport (remote MCP for the web version)
+// runs each request inside its session's context.
+interface SessionContext {
+  client: LlmWikiApiClient
+  binding: McpProjectBinding
+}
+const sessionContext = new AsyncLocalStorage<SessionContext>()
+const defaultContext: SessionContext = { client: new LlmWikiApiClient(), binding: new McpProjectBinding() }
+function currentContext(): SessionContext {
+  return sessionContext.getStore() ?? defaultContext
+}
+function contextProxy<T extends object>(pick: (ctx: SessionContext) => T): T {
+  return new Proxy({} as T, {
+    get(_target, key) {
+      const target = pick(currentContext()) as Record<PropertyKey, unknown>
+      const value = target[key]
+      return typeof value === "function" ? (value as (...a: unknown[]) => unknown).bind(target) : value
+    },
+  })
+}
+const client = contextProxy((ctx) => ctx.client)
+const projectBinding = contextProxy((ctx) => ctx.binding)
 
+function createMcpServer(): Server {
 const server = new Server(
   { name: "llm-wiki", version: VERSION },
   { capabilities: { tools: {} } },
@@ -338,6 +365,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 })
 
+return server
+}
+
 async function assertMcpEnabled(): Promise<void> {
   const health = await client.health()
   if (health.mcpEnabled === false) {
@@ -586,7 +616,118 @@ function formatGraph(graph: { nodes: ApiGraphNode[]; edges: Array<{ source: stri
   return lines.join("\n")
 }
 
+// ---------------------------------------------------------------- remote MCP (streamable HTTP)
+
+interface HttpSession {
+  transport: StreamableHTTPServerTransport
+  ctx: SessionContext
+  token: string
+  lastSeen: number
+}
+
+const MAX_HTTP_SESSIONS = 64
+const HTTP_SESSION_IDLE_MS = 30 * 60 * 1000
+
+function requestToken(req: IncomingMessage): string {
+  const auth = req.headers.authorization
+  if (typeof auth === "string" && /^bearer\s+/i.test(auth)) return auth.replace(/^bearer\s+/i, "").trim()
+  const alt = req.headers["x-llm-wiki-token"]
+  return typeof alt === "string" ? alt.trim() : ""
+}
+
+function sameToken(a: string, b: string): boolean {
+  const x = Buffer.from(a)
+  const y = Buffer.from(b)
+  return x.length === y.length && timingSafeEqual(x, y)
+}
+
+function sendJsonRpcError(res: ServerResponse, status: number, message: string): void {
+  res.writeHead(status, { "Content-Type": "application/json" })
+  res.end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message }, id: null }))
+}
+
+async function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  const chunks: Buffer[] = []
+  let size = 0
+  for await (const chunk of req) {
+    const buf = chunk as Buffer
+    size += buf.length
+    if (size > 8 * 1024 * 1024) throw new Error("request body too large")
+    chunks.push(buf)
+  }
+  const text = Buffer.concat(chunks).toString("utf8")
+  return text ? JSON.parse(text) : undefined
+}
+
+async function startHttp(port: number): Promise<void> {
+  const sessions = new Map<string, HttpSession>()
+  setInterval(() => {
+    const now = Date.now()
+    for (const [id, s] of sessions) {
+      if (now - s.lastSeen > HTTP_SESSION_IDLE_MS) {
+        sessions.delete(id)
+        void s.transport.close().catch(() => undefined)
+      }
+    }
+  }, 60_000).unref()
+
+  const http = createHttpServer(async (req, res) => {
+    try {
+      const path = (req.url ?? "/").split("?")[0]
+      if (path !== "/mcp") return sendJsonRpcError(res, 404, "Not found")
+      const token = requestToken(req)
+      const body = req.method === "POST" ? await readJsonBody(req) : undefined
+      const sid = req.headers["mcp-session-id"]
+      const existing = typeof sid === "string" ? sessions.get(sid) : undefined
+      if (existing) {
+        if (!sameToken(existing.token, token)) return sendJsonRpcError(res, 401, "Unauthorized")
+        existing.lastSeen = Date.now()
+        await sessionContext.run(existing.ctx, () => existing.transport.handleRequest(req, res, body))
+        return
+      }
+      if (typeof sid === "string" && sid) return sendJsonRpcError(res, 404, "Session not found")
+      if (req.method !== "POST" || !isInitializeRequest(body)) {
+        return sendJsonRpcError(res, 400, "Bad Request: no valid session ID provided")
+      }
+      if (sessions.size >= MAX_HTTP_SESSIONS) {
+        const oldest = [...sessions.entries()].sort((a, b) => a[1].lastSeen - b[1].lastSeen)[0]
+        if (oldest) {
+          sessions.delete(oldest[0])
+          void oldest[1].transport.close().catch(() => undefined)
+        }
+      }
+      const ctx: SessionContext = {
+        client: new LlmWikiApiClient(token ? { token } : {}),
+        binding: new McpProjectBinding(),
+      }
+      const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => randomUUID(),
+        enableJsonResponse: true,
+        onsessioninitialized: (id) => {
+          sessions.set(id, { transport, ctx, token, lastSeen: Date.now() })
+        },
+      })
+      transport.onclose = () => {
+        if (transport.sessionId) sessions.delete(transport.sessionId)
+      }
+      await createMcpServer().connect(transport)
+      await sessionContext.run(ctx, () => transport.handleRequest(req, res, body))
+    } catch (err) {
+      console.error("[mcp-http] request failed:", err)
+      if (!res.headersSent) sendJsonRpcError(res, 500, "Internal error")
+    }
+  })
+  await new Promise<void>((resolve) => http.listen(port, "127.0.0.1", resolve))
+  console.error(`LLM Wiki MCP server v${VERSION} (streamable HTTP) on 127.0.0.1:${port}/mcp -> ${process.env.LLM_WIKI_API_BASE_URL ?? "http://127.0.0.1:19828"}`)
+}
+
 async function main(): Promise<void> {
+  const httpPort = Number(process.env.LLM_WIKI_MCP_HTTP_PORT || "")
+  if (Number.isInteger(httpPort) && httpPort > 0) {
+    await startHttp(httpPort)
+    return
+  }
+  const server = createMcpServer()
   const transport = new StdioServerTransport()
   await server.connect(transport)
   console.error(`LLM Wiki MCP server v${VERSION} connected to ${process.env.LLM_WIKI_API_BASE_URL ?? "http://127.0.0.1:19828"}`)

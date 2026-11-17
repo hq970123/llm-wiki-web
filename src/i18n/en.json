@@ -1217,6 +1217,7 @@
     "noProjectOpen": "No project open",
     "close": "Close",
     "text": "Text",
-    "pdfText": "PDF text"
+    "pdfText": "PDF text",
+    "mcpHttpHint": "Remote MCP (streamable HTTP): add the config below to your MCP client (Claude Code, Cursor, Cherry Studio…). The client connects straight to this site's /mcp address with the access token — nothing to install locally."
   }
 }

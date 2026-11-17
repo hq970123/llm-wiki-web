@@ -238,7 +238,15 @@ async fn forward_local(port: u16, rest: &str, req: Request) -> Response {
     };
     let method = reqwest::Method::from_bytes(parts.method.as_str().as_bytes()).unwrap_or(reqwest::Method::GET);
     let mut rb = client.request(method, url);
-    for name in ["content-type", "accept", "authorization", "x-llm-wiki-token"] {
+    for name in [
+        "content-type",
+        "accept",
+        "authorization",
+        "x-llm-wiki-token",
+        "mcp-session-id",
+        "mcp-protocol-version",
+        "last-event-id",
+    ] {
         if let Some(v) = parts.headers.get(name) {
             rb = rb.header(name, v.as_bytes());
         }
@@ -268,4 +276,20 @@ pub async fn handle_local_api_forward(State(st): State<AppState>, Path(rest): Pa
         return proxy_error(StatusCode::SERVICE_UNAVAILABLE, "local API server disabled (LLM_WIKI_ENABLE_API_SERVER=1)".into());
     }
     forward_local(19828, &rest, req).await
+}
+
+/// Public `/api/v1/*` -> internal API server (it enforces the API token).
+pub async fn handle_public_api(State(st): State<AppState>, rest: String, req: Request) -> Response {
+    if !st.cfg.enable_api_server {
+        return proxy_error(StatusCode::SERVICE_UNAVAILABLE, "API server disabled (LLM_WIKI_ENABLE_API_SERVER=0)".into());
+    }
+    forward_local(19828, &format!("api/{rest}"), req).await
+}
+
+/// Public `/mcp` -> bundled MCP server (streamable HTTP).
+pub async fn handle_mcp_forward(State(st): State<AppState>, req: Request) -> Response {
+    if !st.cfg.enable_api_server || !st.cfg.enable_mcp_http {
+        return proxy_error(StatusCode::SERVICE_UNAVAILABLE, "remote MCP disabled".into());
+    }
+    forward_local(19829, "mcp", req).await
 }

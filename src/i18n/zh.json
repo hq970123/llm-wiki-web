@@ -1217,6 +1217,7 @@
     "noProjectOpen": "尚未打开项目",
     "close": "关闭",
     "text": "文本",
-    "pdfText": "PDF 文本"
+    "pdfText": "PDF 文本",
+    "mcpHttpHint": "远程 MCP（Streamable HTTP）：把下面的配置填进 MCP 客户端（Claude Code、Cursor、Cherry Studio 等），客户端会用访问令牌直接连接本站的 /mcp 地址，本地无需安装任何东西。"
   }
 }
