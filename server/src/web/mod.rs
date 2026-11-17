@@ -296,9 +296,30 @@ async fn static_cache_headers(req: Request, next: Next) -> Response {
     res
 }
 
+/// LLM_WIKI_EMBED=1: allow being framed by other sites (HF Spaces).
+pub(crate) fn embed_mode() -> bool {
+    static EMBED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *EMBED.get_or_init(|| env_flag("LLM_WIKI_EMBED", false))
+}
+
 async fn security_headers(req: Request, next: Next) -> Response {
+    let https = req
+        .headers()
+        .get("x-forwarded-proto")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.trim().eq_ignore_ascii_case("https"))
+        .unwrap_or(false);
     let mut res = next.run(req).await;
     let h = res.headers_mut();
+    if !embed_mode() {
+        // Clickjacking guard: only our own pages may frame the app.
+        h.entry(header::X_FRAME_OPTIONS)
+            .or_insert(HeaderValue::from_static("SAMEORIGIN"));
+    }
+    if https {
+        h.entry(header::STRICT_TRANSPORT_SECURITY)
+            .or_insert(HeaderValue::from_static("max-age=15552000"));
+    }
     h.entry(header::X_CONTENT_TYPE_OPTIONS)
         .or_insert(HeaderValue::from_static("nosniff"));
     h.entry("referrer-policy")

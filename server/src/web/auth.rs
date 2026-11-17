@@ -283,13 +283,17 @@ fn is_https(headers: &HeaderMap) -> bool {
 }
 
 fn session_cookie(headers: &HeaderMap, token: &str, max_age: u64) -> HeaderValue {
-    // Over HTTPS use SameSite=None + Partitioned so the app also works when
-    // embedded in a third-party iframe (Hugging Face Spaces page); CSRF is
-    // covered by the mandatory X-LLM-Wiki header on state-changing calls.
-    let attrs = if is_https(headers) {
+    // Top-level deployments (the default) get Secure + SameSite=Lax over
+    // HTTPS. Only when the app must work inside a third-party iframe (e.g.
+    // the Hugging Face Spaces page; LLM_WIKI_EMBED=1) is SameSite=None +
+    // Partitioned used; CSRF is also covered by the mandatory X-LLM-Wiki
+    // header on state-changing calls.
+    let attrs = if !is_https(headers) {
+        "; SameSite=Lax"
+    } else if super::embed_mode() {
         "; Secure; SameSite=None; Partitioned"
     } else {
-        "; SameSite=Lax"
+        "; Secure; SameSite=Lax"
     };
     HeaderValue::from_str(&format!(
         "{COOKIE}={token}; Path=/; HttpOnly; Max-Age={max_age}{attrs}"

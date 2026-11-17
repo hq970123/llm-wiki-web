@@ -151,6 +151,7 @@
   #root {
     box-sizing: border-box;
     height: 100vh;
+    height: 100dvh;
     background: var(--background);
     }
   html {

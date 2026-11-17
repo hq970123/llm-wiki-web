@@ -14,6 +14,22 @@ import { PanelLeftOpen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const LEFT_PANEL_COLLAPSED_KEY = "llm-wiki:left-panel-collapsed"
+const NARROW_QUERY = "(max-width: 767px)"
+
+/** Phone-sized viewport: side panels become overlays instead of columns. */
+function useNarrowViewport(): boolean {
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== "undefined" && !!window.matchMedia?.(NARROW_QUERY).matches,
+  )
+  useEffect(() => {
+    if (!window.matchMedia) return
+    const mq = window.matchMedia(NARROW_QUERY)
+    const onChange = () => setNarrow(mq.matches)
+    mq.addEventListener?.("change", onChange)
+    return () => mq.removeEventListener?.("change", onChange)
+  }, [])
+  return narrow
+}
 
 interface AppLayoutProps {
   onSwitchProject: () => void
@@ -24,6 +40,9 @@ export function AppLayout({ onSwitchProject }: AppLayoutProps) {
   const project = useWikiStore((s) => s.project)
   const activeView = useWikiStore((s) => s.activeView)
   const researchPanelOpen = useResearchStore((s) => s.panelOpen)
+  const selectedFile = useWikiStore((s) => s.selectedFile)
+  const narrow = useNarrowViewport()
+  const [mobileLeftOpen, setMobileLeftOpen] = useState(false)
   const [leftWidth, setLeftWidth] = useState(220)
   const [rightWidth, setRightWidth] = useState(400)
   const [leftCollapsed, setLeftCollapsed] = useState(
@@ -90,7 +109,16 @@ export function AppLayout({ onSwitchProject }: AppLayoutProps) {
   // activity strip, and optional right research panel there so those
   // screens use the whole work area.
   const { showLeftPanel, hasRightPanel } = getAppLayoutVisibility(activeView, researchPanelOpen)
+  // On phones, opening a file from the drawer should reveal it.
+  useEffect(() => {
+    setMobileLeftOpen(false)
+  }, [selectedFile, activeView])
+
   const toggleLeftPanel = () => {
+    if (narrow) {
+      setMobileLeftOpen((v) => !v)
+      return
+    }
     setLeftCollapsed((value) => {
       const next = !value
       localStorage.setItem(LEFT_PANEL_COLLAPSED_KEY, String(next))
@@ -109,7 +137,23 @@ export function AppLayout({ onSwitchProject }: AppLayoutProps) {
       <div className="flex min-h-0 flex-1">
         <IconSidebar onSwitchProject={onSwitchProject} />
         <div ref={containerRef} className="relative flex min-w-0 flex-1 overflow-hidden">
-          {showLeftPanel && !leftCollapsed && (
+          {narrow && showLeftPanel && mobileLeftOpen && (
+            <>
+              <div
+                className="absolute inset-0 z-20 bg-black/40"
+                onClick={() => setMobileLeftOpen(false)}
+                aria-hidden="true"
+              />
+              <div className="absolute inset-y-0 left-0 z-30 flex w-[85%] max-w-[320px] flex-col overflow-hidden border-r bg-background shadow-xl">
+                <div className="flex-1 overflow-hidden">
+                  <SidebarPanel onCollapse={toggleLeftPanel} />
+                </div>
+                <ActivityPanel />
+              </div>
+            </>
+          )}
+
+          {!narrow && showLeftPanel && !leftCollapsed && (
             <>
               {/* Left: File tree + Activity */}
               <div
@@ -128,7 +172,7 @@ export function AppLayout({ onSwitchProject }: AppLayoutProps) {
             </>
           )}
 
-          {showLeftPanel && leftCollapsed && (
+          {showLeftPanel && (narrow || leftCollapsed) && (
             <div className="flex w-9 shrink-0 justify-center border-r bg-muted/20 pt-2">
               <button
                 type="button"
@@ -150,7 +194,14 @@ export function AppLayout({ onSwitchProject }: AppLayoutProps) {
           </div>
 
           {/* Right panels */}
-          {hasRightPanel && (
+          {hasRightPanel && narrow && (
+            <div className="absolute inset-0 z-30 flex flex-col overflow-hidden bg-background">
+              <ErrorBoundary>
+                <ResearchPanel />
+              </ErrorBoundary>
+            </div>
+          )}
+          {hasRightPanel && !narrow && (
             <>
               <div
                 className="w-1.5 shrink-0 cursor-col-resize bg-border/40 transition-colors hover:bg-primary/30 active:bg-primary/40"

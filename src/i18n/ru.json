@@ -391,7 +391,8 @@
       "reading_context": "Чтение контекста",
       "writing": "Написание ответа",
       "resultCount": "результаты: {{count}}"
-    }
+    },
+    "backToConversations": "Беседы"
   },
   "search": {
     "title": "Поиск",

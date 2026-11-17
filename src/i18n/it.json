@@ -391,7 +391,8 @@
       "reading_context": "Lettura del contesto",
       "writing": "Scrittura della risposta",
       "resultCount": "risultati: {{count}}"
-    }
+    },
+    "backToConversations": "Conversazioni"
   },
   "search": {
     "title": "Ricerca",

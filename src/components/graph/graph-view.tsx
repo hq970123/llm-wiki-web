@@ -1495,7 +1495,7 @@ export function GraphView() {
 
         {/* Insights Side Panel */}
         {showInsights && (
-          <div className="w-80 shrink-0 border-l bg-background overflow-y-auto">
+          <div className="w-80 shrink-0 border-l bg-background overflow-y-auto max-md:absolute max-md:inset-0 max-md:z-30 max-md:w-full">
             <div className="px-4 py-3 border-b">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

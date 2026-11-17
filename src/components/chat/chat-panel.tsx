@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { convertFileSrc, invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
-import { BookOpen, Plus, Trash2, MessageSquare, X, Maximize2, FolderOpen, FileText, ListTree, ChevronDown, ChevronRight } from "lucide-react"
+import { BookOpen, Plus, Trash2, MessageSquare, X, Maximize2, FolderOpen, FileText, ListTree, ChevronDown, ChevronRight, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ChatMessage, StreamingMessage, useSourceFiles, type ChatReferencePreview } from "./chat-message"
 import { ChatInput, type ChatSendOptions } from "./chat-input"
@@ -187,7 +187,11 @@ function ConversationSidebar({
   }
 
   return (
-    <div className="flex h-full w-[200px] flex-shrink-0 flex-col border-r bg-muted/30">
+    <div
+      className={`flex h-full w-full flex-shrink-0 flex-col border-r bg-muted/30 md:w-[200px] ${
+        activeConversationId ? "max-md:hidden" : ""
+      }`}
+    >
       <div className="border-b p-2">
         <Button
           variant="outline"
@@ -1421,13 +1425,25 @@ export function ChatPanel() {
   const showWriteButton = mode === "ingest" && !activeStreaming && hasAssistantMessages
 
   return (
-    <div className="flex h-full flex-row overflow-hidden">
+    <div className="relative flex h-full flex-row overflow-hidden">
       <ConversationSidebar
         onNewConversation={handleNewConversation}
         onSelectConversation={handleSelectConversation}
       />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className={`flex flex-1 flex-col overflow-hidden ${activeConversationId ? "" : "max-md:hidden"}`}>
+        {activeConversationId && (
+          <div className="flex shrink-0 items-center border-b px-2 py-1 md:hidden">
+            <button
+              type="button"
+              onClick={() => useChatStore.getState().setActiveConversation(null)}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              {t("chat.backToConversations", "Conversations")}
+            </button>
+          </div>
+        )}
         {!activeConversationId ? (
           <div className="flex flex-1 items-center justify-center text-muted-foreground">
             <div className="text-center">
@@ -1561,7 +1577,7 @@ function GeneratedOutputsPanel({
 }) {
   const { t } = useTranslation()
   return (
-    <aside className="flex h-full w-[280px] shrink-0 flex-col border-l bg-background">
+    <aside className="flex h-full w-[280px] shrink-0 flex-col border-l bg-background max-md:absolute max-md:inset-0 max-md:z-30 max-md:w-full">
       <div className="flex min-h-10 items-center gap-2 border-b px-3 py-2">
         <FolderOpen className="h-4 w-4 shrink-0 text-primary" />
         <div className="min-w-0 flex-1">

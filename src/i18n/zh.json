@@ -391,7 +391,8 @@
       "reading_context": "读取上下文",
       "writing": "生成回答",
       "resultCount": "{{count}} 条结果"
-    }
+    },
+    "backToConversations": "对话列表"
   },
   "search": {
     "title": "搜索",
