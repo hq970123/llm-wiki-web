@@ -349,7 +349,7 @@ function openChangePassword(): void {
     const i = document.createElement("input")
     i.type = "password"
     i.placeholder = ph
-    i.autocomplete = ac
+    i.setAttribute("autocomplete", ac)
     i.required = true
     form.appendChild(i)
     return i
