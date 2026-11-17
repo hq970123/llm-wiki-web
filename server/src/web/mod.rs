@@ -206,7 +206,7 @@ async fn serve(cfg: WebConfig) {
         cfg: cfg.clone(),
     };
 
-    files::spawn_upload_janitor(cfg.uploads_dir.clone());
+    files::spawn_upload_janitor(vec![cfg.uploads_dir.clone(), cfg.exports_dir.clone()]);
 
     let api = Router::new()
         .route("/api/invoke/{cmd}", post(invoke::handle_invoke))
@@ -241,8 +241,12 @@ async fn serve(cfg: WebConfig) {
     let static_files = tower_http::services::ServeDir::new(&cfg.dist_dir)
         .append_index_html_on_directories(true)
         .fallback(tower_http::services::ServeFile::new(cfg.dist_dir.join("index.html")));
+    // Compression only on the static UI (the JS bundle is several MB);
+    // API routes stream (SSE, NDJSON LLM proxies) and must not be buffered.
     let spa = Router::new()
         .fallback_service(static_files)
+        .layer(middleware::from_fn(static_cache_headers))
+        .layer(tower_http::compression::CompressionLayer::new())
         .layer(middleware::from_fn_with_state(state.clone(), require_session_page));
 
     let router = Router::new()
@@ -274,6 +278,23 @@ async fn serve(cfg: WebConfig) {
 }
 
 // ------------------------------------------------------------------ middleware
+
+/// Vite emits content-hashed files under /assets/, so they can be cached
+/// forever; everything else (index.html, SPA routes) must revalidate so a
+/// redeploy is picked up on the next page load.
+async fn static_cache_headers(req: Request, next: Next) -> Response {
+    let immutable = req.uri().path().starts_with("/assets/");
+    let mut res = next.run(req).await;
+    if res.status().is_success() || res.status() == StatusCode::NOT_MODIFIED {
+        let v = if immutable {
+            "public, max-age=31536000, immutable"
+        } else {
+            "no-cache"
+        };
+        res.headers_mut().insert(header::CACHE_CONTROL, HeaderValue::from_static(v));
+    }
+    res
+}
 
 async fn security_headers(req: Request, next: Next) -> Response {
     let mut res = next.run(req).await;

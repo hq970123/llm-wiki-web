@@ -6,6 +6,7 @@ import { useWikiStore } from "@/stores/wiki-store"
 import type { FileNode } from "@/types/wiki"
 import { useTranslation } from "react-i18next"
 import { listDirectory, openProjectFolder } from "@/commands/fs"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 import { replaceNodeChildren } from "./file-tree-utils"
 
 function TreeNode({
@@ -168,6 +169,7 @@ export function FileTree() {
           ))}
         </div>
       </ScrollArea>
+      {!IS_WEB_BUILD && (
       <div className="shrink-0 border-t p-2">
         <button
           type="button"
@@ -181,6 +183,7 @@ export function FileTree() {
           </span>
         </button>
       </div>
+      )}
     </div>
   )
 }

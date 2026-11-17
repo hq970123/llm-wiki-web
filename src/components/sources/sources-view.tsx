@@ -7,6 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useWikiStore } from "@/stores/wiki-store"
 import { listDirectory, openPathInProject, readFile } from "@/commands/fs"
+import { openPath } from "@tauri-apps/plugin-opener"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 import type { FileNode } from "@/types/wiki"
 import { useTranslation } from "react-i18next"
 import { useAppDialog } from "@/stores/app-dialog-store"
@@ -279,7 +281,9 @@ export function SourcesView() {
   async function handleOpenSourceExternally(node: FileNode) {
     if (!project) return
     try {
-      await openPathInProject(project.path, node.path)
+      // Web: the file lives on the server, so open it in a new browser tab.
+      if (IS_WEB_BUILD) await openPath(node.path)
+      else await openPathInProject(project.path, node.path)
     } catch (err) {
       console.error("Failed to open source externally:", err)
       await appDialog.alert({ message: t("sources.openExternalFailed", {
@@ -849,8 +853,8 @@ function SourceTree({
               variant="ghost"
               size="icon"
               className="h-7 w-7 shrink-0"
-              title={t("sources.openExternal")}
-              aria-label={t("sources.openExternal")}
+              title={t(IS_WEB_BUILD ? "webUi.openInNewTab" : "sources.openExternal")}
+              aria-label={t(IS_WEB_BUILD ? "webUi.openInNewTab" : "sources.openExternal")}
               onClick={() => onOpenExternal(node)}
             >
               <ExternalLink className="h-4 w-4" />

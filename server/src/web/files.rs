@@ -167,6 +167,16 @@ async fn serve_file(st: &AppState, q: &PathQuery, req: Request, attachment: bool
     if !path.is_file() {
         return err(StatusCode::NOT_FOUND, "file not found");
     }
+    // Never hand out the login hash / session table, even to a signed-in
+    // browser (an XSS or a shared link would otherwise leak them).
+    if path.parent() == Some(root.as_path())
+        && matches!(
+            path.file_name().and_then(|n| n.to_str()),
+            Some("auth.json") | Some("sessions.json")
+        )
+    {
+        return err(StatusCode::FORBIDDEN, "forbidden");
+    }
     let mime = mime_guess::from_path(&path).first_or_octet_stream();
     let svc = tower_http::services::ServeFile::new_with_mime(&path, &mime);
     let mut res = match svc.oneshot(req).await {
@@ -286,22 +296,30 @@ pub async fn handle_fs_mkdir(State(st): State<AppState>, Json(b): Json<MkdirBody
     }
 }
 
-/// Imported sources are copied into the project, so the upload inbox is
-/// only a staging area: delete inbox folders older than 24 h, hourly.
-pub fn spawn_upload_janitor(dir: PathBuf) {
+/// Imported sources are copied into the project and exports are handed to
+/// the browser as downloads, so both folders are only staging areas:
+/// delete entries older than 24 h, hourly (keeps the volume from filling).
+pub fn spawn_upload_janitor(dirs: Vec<PathBuf>) {
     tokio::spawn(async move {
         loop {
-            if let Ok(rd) = std::fs::read_dir(&dir) {
-                let cutoff = SystemTime::now() - Duration::from_secs(24 * 3600);
+            let cutoff = SystemTime::now() - Duration::from_secs(24 * 3600);
+            for dir in &dirs {
+                let Ok(rd) = std::fs::read_dir(dir) else { continue };
                 for e in rd.flatten() {
                     let old = e
                         .metadata()
                         .and_then(|m| m.modified())
                         .map(|t| t < cutoff)
                         .unwrap_or(false);
-                    if old {
-                        let _ = std::fs::remove_dir_all(e.path());
+                    if !old {
+                        continue;
                     }
+                    let p = e.path();
+                    let _ = if p.is_dir() {
+                        std::fs::remove_dir_all(&p)
+                    } else {
+                        std::fs::remove_file(&p)
+                    };
                 }
             }
             tokio::time::sleep(Duration::from_secs(3600)).await;
