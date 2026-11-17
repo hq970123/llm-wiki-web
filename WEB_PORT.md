@@ -162,7 +162,7 @@ docker compose up -d
 Dockerfile 为多阶段：`node:22` 构建前端 → `rust:1-bookworm`（装 `protobuf-compiler`、cmake、clang）编译
 `llm-wiki-web` → 按 `TARGETARCH` 选择并校验 `src-tauri/pdfium/libpdfium.so`（x86_64）或 `libpdfium-arm64.so`
 （SHA256SUMS 校验）→ `debian:bookworm-slim` 运行时，uid 1000 用户、`EXPOSE 7860`、`VOLUME /data`、tini、健康检查。
-构建机内存紧张时可 `--build-arg CARGO_BUILD_JOBS=2`。
+构建机内存紧张时可 `--build-arg BUILD_JOBS=2`。
 
 ### 4.3 Hugging Face Spaces
 

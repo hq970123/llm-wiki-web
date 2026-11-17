@@ -31,8 +31,8 @@ WORKDIR /src/server
 # mold links the (large: lancedb/datafusion) binary much faster and with
 # far less memory than GNU ld.
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
-ARG CARGO_BUILD_JOBS=
-RUN if [ -n "$CARGO_BUILD_JOBS" ]; then export CARGO_BUILD_JOBS; fi; \
+ARG BUILD_JOBS=
+RUN if [ -n "$BUILD_JOBS" ]; then export CARGO_BUILD_JOBS="$BUILD_JOBS"; fi; \
     cargo build --release --locked --bin llm-wiki-web \
  && cp target/release/llm-wiki-web /llm-wiki-web
 
