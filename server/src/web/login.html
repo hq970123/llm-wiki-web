@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Wiki — Sign in</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f6f7f9; --card:#fff; --fg:#111827; --muted:#6b7280; --accent:#2563eb; --border:#e5e7eb; --err:#dc2626; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0b0d12; --card:#151922; --fg:#e5e7eb; --muted:#9ca3af; --accent:#60a5fa; --border:#262b36; } }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif; }
+  .card { width:min(380px, 92vw); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:28px; box-shadow:0 10px 30px rgba(0,0,0,.06); }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.sub { margin:0 0 20px; color:var(--muted); font-size:13px; }
+  label { display:block; font-size:13px; margin:12px 0 6px; color:var(--muted); }
+  input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:transparent; color:inherit; font-size:15px; }
+  input:focus { outline:2px solid var(--accent); outline-offset:-1px; }
+  button { width:100%; margin-top:18px; padding:10px 12px; border:0; border-radius:8px; background:var(--accent); color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:default; }
+  .err { color:var(--err); font-size:13px; min-height:18px; margin-top:10px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<form class="card" id="form" autocomplete="on">
+  <h1 id="title">LLM Wiki</h1>
+  <p class="sub" id="subtitle">Loading…</p>
+  <input type="text" name="username" value="owner" autocomplete="username" class="hidden" aria-hidden="true" tabindex="-1">
+  <label for="pw" id="pwLabel">Password</label>
+  <input id="pw" type="password" required minlength="1" autocomplete="current-password" autofocus>
+  <div id="confirmWrap" class="hidden">
+    <label for="pw2">Confirm password</label>
+    <input id="pw2" type="password" autocomplete="new-password">
+  </div>
+  <button id="submit" type="submit" disabled>Sign in</button>
+  <div class="err" id="err" role="alert"></div>
+</form>
+<script>
+(function () {
+  var mode = "login";
+  var $ = function (id) { return document.getElementById(id); };
+  var zh = /^zh/i.test(navigator.language || "");
+  var T = zh ? {
+    login: "登录", loginSub: "请输入访问密码。", setup: "设置密码", setupSub: "首次使用：为这个 LLM Wiki 实例设置唯一的访问密码（至少 8 位）。",
+    pw: "密码", newPw: "新密码", confirm: "确认密码", mismatch: "两次输入的密码不一致", short: "密码至少需要 8 个字符", fail: "请求失败"
+  } : {
+    login: "Sign in", loginSub: "Enter the password for this LLM Wiki.", setup: "Set password", setupSub: "First run: choose the single password that protects this LLM Wiki instance (8+ characters).",
+    pw: "Password", newPw: "New password", confirm: "Confirm password", mismatch: "Passwords do not match", short: "Password must be at least 8 characters", fail: "Request failed"
+  };
+  function render(status) {
+    mode = status.configured ? "login" : "setup";
+    $("title").textContent = "LLM Wiki";
+    $("subtitle").textContent = mode === "login" ? T.loginSub : T.setupSub;
+    $("pwLabel").textContent = mode === "login" ? T.pw : T.newPw;
+    $("confirmWrap").classList.toggle("hidden", mode !== "setup");
+    $("pw").setAttribute("autocomplete", mode === "login" ? "current-password" : "new-password");
+    $("submit").textContent = mode === "login" ? T.login : T.setup;
+    $("submit").disabled = false;
+    document.querySelector("label[for=pw2]").textContent = T.confirm;
+  }
+  fetch("/api/auth/status", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (s) {
+    if (s.authenticated) { location.replace("/"); return; }
+    render(s);
+  }).catch(function () { $("err").textContent = T.fail; });
+
+  $("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var pw = $("pw").value;
+    $("err").textContent = "";
+    if (mode === "setup") {
+      if (pw.length < 8) { $("err").textContent = T.short; return; }
+      if (pw !== $("pw2").value) { $("err").textContent = T.mismatch; return; }
+    }
+    $("submit").disabled = true;
+    fetch(mode === "setup" ? "/api/auth/setup" : "/api/auth/login", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-LLM-Wiki": "1" },
+      body: JSON.stringify({ password: pw })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (body) {
+        if (r.ok) { location.replace("/"); return; }
+        $("err").textContent = body.error || (T.fail + " (" + r.status + ")");
+        $("submit").disabled = false;
+        if (r.status === 409) { fetch("/api/auth/status").then(function (x) { return x.json(); }).then(render); }
+      });
+    }).catch(function () { $("err").textContent = T.fail; $("submit").disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>

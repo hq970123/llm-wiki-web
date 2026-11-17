@@ -1,0 +1,16 @@
+[package]
+name = "tauri-web-shim"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Minimal stand-in for the `tauri` crate used by the headless web server build"
+
+[lib]
+name = "tauri"
+
+[dependencies]
+tauri-web-macros = { path = "../tauri-web-macros" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "sync"] }
+futures = "0.3"

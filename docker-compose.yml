@@ -1,0 +1,22 @@
+# Example: docker compose up -d   ->  http://localhost:7860
+services:
+  llm-wiki:
+    build: .
+    image: llm-wiki-web:latest
+    ports:
+      - "7860:7860"
+    volumes:
+      - llm-wiki-data:/data
+    environment:
+      # Optional: pin the single account's password (otherwise the first
+      # visitor sets it in the browser).
+      # LLM_WIKI_PASSWORD: "change-me-please"
+      # Allow the CORS proxy to reach private/LAN addresses, e.g. an
+      # Ollama container at http://ollama:11434 :
+      # LLM_WIKI_PROXY_ALLOW_PRIVATE: "1"
+      PORT: "7860"
+      DATA_DIR: /data
+    restart: unless-stopped
+
+volumes:
+  llm-wiki-data:

@@ -1,0 +1,89 @@
+# Headless web server build of LLM Wiki.
+#
+# The library target compiles the *upstream* desktop backend
+# (../src-tauri/src/lib.rs and everything it pulls in) unchanged, but with
+# `tauri` / `tauri-plugin-opener` replaced by the tiny shims in ./shims.
+# No webview, GTK or display is needed to build or run it.
+[package]
+name = "llm-wiki-web"
+version = "0.6.13"
+edition = "2021"
+rust-version = "1.88"
+publish = false
+
+[lib]
+name = "llm_wiki_lib"
+path = "../src-tauri/src/lib.rs"
+crate-type = ["rlib"]
+
+[[bin]]
+name = "llm-wiki-web"
+path = "src/main.rs"
+
+[features]
+default = ["web"]
+# Enables `crate::web` (the axum server) inside the upstream lib.rs.
+web = []
+
+[dependencies]
+# --- shims standing in for Tauri ---
+tauri = { path = "shims/tauri", package = "tauri-web-shim" }
+tauri-plugin-opener = { path = "shims/tauri-plugin-opener", package = "tauri-plugin-opener-web-shim" }
+
+# --- same backend dependencies as src-tauri/Cargo.toml (keep in sync) ---
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["clock"] }
+pdfium-render = "0.9"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+tiny_http = "0.12"
+zip = "2"
+calamine = "0.34.0"
+docx-rs = "0.4.20"
+office_oxide = "=0.1.2"
+anydoc = "0.1.6"
+lancedb = "0.27.2"
+arrow-array = "57"
+arrow-schema = "57"
+futures = "0.3"
+tokio = { version = "1", features = ["full"] }
+which = "7"
+uuid = { version = "1", features = ["v4"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+base64 = "0.22"
+sha2 = "0.10"
+md-5 = "0.10"
+notify = "8"
+walkdir = "2"
+epub = "2.1.5"
+mobi = "0.8"
+html2text = { version = "0.17.1", default-features = false, features = ["xml"] }
+
+# --- web server only ---
+axum = { version = "0.8", features = ["multipart", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "compression-gzip", "trace"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+tokio-util = { version = "0.7", features = ["io"] }
+paste = "1"
+argon2 = "0.5"
+rand = "0.8"
+bytes = "1"
+http-body-util = "0.1"
+mime_guess = "2"
+percent-encoding = "2"
+url = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+
+[profile.dev]
+debug = 0
+incremental = true
+
+[profile.release]
+codegen-units = 4
+lto = false
+opt-level = 2
+panic = "unwind"
+strip = true

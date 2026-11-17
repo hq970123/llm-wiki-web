@@ -1,0 +1,11 @@
+[package]
+name = "tauri-plugin-opener-web-shim"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "tauri_plugin_opener"
+
+[dependencies]
+tauri = { path = "../tauri", package = "tauri-web-shim" }

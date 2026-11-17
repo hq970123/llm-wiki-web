@@ -1,0 +1,19 @@
+# Keep the build context small; only what the Dockerfile copies matters.
+.git
+**/node_modules
+dist
+dist-ssr
+dist-rc
+src-tauri/target
+src-tauri/gen
+server/target
+mcp-server/node_modules
+mcp-server/dist
+extension
+assets
+*.log
+.env
+.env.*
+**/*.tsbuildinfo
+src-tauri/pdfium/*.dll
+src-tauri/pdfium/*.dylib
