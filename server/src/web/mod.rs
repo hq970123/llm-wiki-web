@@ -21,6 +21,7 @@
 //!   GET  /*                   Vite dist (SPA fallback to index.html)
 
 mod auth;
+mod events;
 mod files;
 mod http_proxy;
 mod invoke;
@@ -66,6 +67,7 @@ pub struct AppState {
     pub cfg: Arc<WebConfig>,
     pub auth: Arc<auth::Auth>,
     pub stores: Arc<store::Stores>,
+    pub events: Arc<events::EventLog>,
 }
 
 fn env_flag(name: &str, default: bool) -> bool {
@@ -202,6 +204,7 @@ async fn serve(cfg: WebConfig) {
     let state = AppState {
         auth: Arc::new(auth::Auth::load(&cfg.data_dir)),
         stores: Arc::new(store::Stores::new(cfg.app_data_dir.clone())),
+        events: events::EventLog::spawn(&app),
         app,
         cfg: cfg.clone(),
     };
@@ -352,7 +355,14 @@ async fn require_session_page(State(st): State<AppState>, req: Request, next: Ne
         return next.run(req).await;
     }
     let path = req.uri().path();
-    // Let the browser fetch favicons etc. without leaking app content.
+    // Icons and the web-app manifest are public so the login page and
+    // "Add to Home screen" work before signing in; they carry no app data.
+    if matches!(
+        path,
+        "/favicon-32.png" | "/apple-touch-icon.png" | "/icon-192.png" | "/icon-512.png" | "/manifest.webmanifest"
+    ) {
+        return next.run(req).await;
+    }
     if path == "/favicon.ico" {
         return StatusCode::NOT_FOUND.into_response();
     }
@@ -374,27 +384,63 @@ async fn login_page(State(st): State<AppState>, headers: axum::http::HeaderMap) 
 
 // ------------------------------------------------------------------ events
 
+#[derive(serde::Deserialize, Default)]
+struct EventsQuery {
+    since: Option<String>,
+}
+
 async fn sse_events(
     State(st): State<AppState>,
+    headers: axum::http::HeaderMap,
+    axum::extract::Query(q): axum::extract::Query<EventsQuery>,
 ) -> Sse<impl Stream<Item = Result<Event, std::convert::Infallible>>> {
     use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
     use tokio_stream::StreamExt;
-    let rx = st.app.subscribe_events();
-    let hello = futures::stream::once(async {
-        Ok::<_, std::convert::Infallible>(Event::default().event("ready").data("{}"))
+    let log = st.events.clone();
+    // EventSource's own retry sends Last-Event-ID; a page that had to open
+    // a new EventSource passes the last id it saw as ?since=.
+    let raw_since = headers
+        .get("last-event-id")
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string)
+        .or(q.since);
+    let since = raw_since.as_deref().and_then(|r| log.parse_since(r));
+    let (replay, rx) = log.subscribe_from(since);
+    let last_replayed = replay.last().map(|e| e.seq).or(since).unwrap_or(0);
+
+    // `resumed` tells the page whether the gap was filled; when false
+    // (new server process, or the gap fell out of the buffer) it can
+    // refresh its state instead.
+    let resumed = raw_since.is_none() || since.is_some_and(|s| {
+        replay.first().map_or(true, |first| first.seq == s + 1 || s == 0)
     });
-    let stream = BroadcastStream::new(rx).filter_map(|item| match item {
-        Ok(ev) => {
-            let data = json!({"event": ev.event, "payload": ev.payload}).to_string();
-            Some(Ok(Event::default().data(data)))
+    let hello = futures::stream::once(async move {
+        Ok::<_, std::convert::Infallible>(
+            Event::default()
+                .event("ready")
+                .data(json!({"resumed": resumed}).to_string()),
+        )
+    });
+    let log_r = log.clone();
+    let replayed = futures::stream::iter(replay.into_iter().map(move |e| {
+        Ok::<_, std::convert::Infallible>(Event::default().id(log_r.id_of(e.seq)).data(&*e.data))
+    }));
+    let log_l = log.clone();
+    let live = BroadcastStream::new(rx).filter_map(move |item| match item {
+        Ok(e) if e.seq > last_replayed => {
+            Some(Ok(Event::default().id(log_l.id_of(e.seq)).data(&*e.data)))
         }
+        Ok(_) => None,
         Err(BroadcastStreamRecvError::Lagged(n)) => {
             eprintln!("[web] SSE client lagged, dropped {n} events");
             None
         }
     });
-    Sse::new(futures::StreamExt::chain(hello, stream))
-        .keep_alive(KeepAlive::new().interval(std::time::Duration::from_secs(15)))
+    Sse::new(futures::StreamExt::chain(
+        futures::StreamExt::chain(hello, replayed),
+        live,
+    ))
+    .keep_alive(KeepAlive::new().interval(std::time::Duration::from_secs(15)))
 }
 
 async fn handle_emit(State(st): State<AppState>, Json(body): Json<Value>) -> impl IntoResponse {

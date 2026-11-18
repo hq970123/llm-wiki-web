@@ -2,13 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
 <title>LLM Wiki — Sign in</title>
 <style>
   :root { color-scheme: light dark; --bg:#f6f7f9; --card:#fff; --fg:#111827; --muted:#6b7280; --accent:#2563eb; --border:#e5e7eb; --err:#dc2626; }
   @media (prefers-color-scheme: dark) { :root { --bg:#0b0d12; --card:#151922; --fg:#e5e7eb; --muted:#9ca3af; --accent:#60a5fa; --border:#262b36; } }
   * { box-sizing: border-box; }
-  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif; }
+  body { margin:0; min-height:100vh; min-height:100dvh; padding:16px; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif; }
   .card { width:min(380px, 92vw); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:28px; box-shadow:0 10px 30px rgba(0,0,0,.06); }
   h1 { font-size:20px; margin:0 0 4px; }
   p.sub { margin:0 0 20px; color:var(--muted); font-size:13px; }
@@ -24,7 +28,7 @@
 <body>
 <form class="card" id="form" autocomplete="on">
   <h1 id="title">LLM Wiki</h1>
-  <p class="sub" id="subtitle">Loading…</p>
+  <p class="sub" id="subtitle">…</p>
   <input type="text" name="username" value="owner" autocomplete="username" class="hidden" aria-hidden="true" tabindex="-1">
   <label for="pw" id="pwLabel">Password</label>
   <input id="pw" type="password" required minlength="1" autocomplete="current-password" autofocus>
@@ -40,6 +44,7 @@
   var mode = "login";
   var $ = function (id) { return document.getElementById(id); };
   var zh = /^zh/i.test(navigator.language || "");
+  if (zh) { document.documentElement.lang = "zh-CN"; document.title = "LLM Wiki — 登录"; }
   var T = zh ? {
     login: "登录", loginSub: "请输入访问密码。", setup: "设置密码", setupSub: "首次使用：为这个 LLM Wiki 实例设置唯一的访问密码（至少 8 位）。",
     pw: "密码", newPw: "新密码", confirm: "确认密码", mismatch: "两次输入的密码不一致", short: "密码至少需要 8 个字符", fail: "请求失败"

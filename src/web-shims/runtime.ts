@@ -152,11 +152,27 @@ if (typeof window !== "undefined") {
   window.addEventListener("offline", () => setConnected(false))
 }
 
+// Last server event id seen ("<boot>:<seq>"), for gap replay on reconnect.
+let lastEventId = ""
+
+function isDuplicate(id: string): boolean {
+  const [boot, seq] = id.split(":")
+  const [lastBoot, lastSeq] = lastEventId.split(":")
+  return boot === lastBoot && Number(seq) <= Number(lastSeq)
+}
+
 function ensureSource(): void {
   if (source || typeof EventSource === "undefined") return
-  source = new EventSource("/api/events", { withCredentials: true })
+  // Resume after the last event we saw so the server replays the gap
+  // (EventSource's own retries send Last-Event-ID; a new one needs ?since=).
+  const url = lastEventId ? `/api/events?since=${encodeURIComponent(lastEventId)}` : "/api/events"
+  source = new EventSource(url, { withCredentials: true })
   source.onopen = () => setConnected(true)
   source.onmessage = (msg) => {
+    if (msg.lastEventId) {
+      if (isDuplicate(msg.lastEventId)) return
+      lastEventId = msg.lastEventId
+    }
     let parsed: { event?: string; payload?: unknown }
     try {
       parsed = JSON.parse(msg.data)
