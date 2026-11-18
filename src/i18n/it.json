@@ -43,7 +43,15 @@
     "settingsShortcut": " (Cmd/Ctrl+,)",
     "switchProject": "Cambia progetto",
     "updateAvailable": "Aggiornamento disponibile",
-    "updateAvailableSuffix": " · aggiorna"
+    "updateAvailableSuffix": " · aggiorna",
+    "connOnline": "Connesso al server",
+    "connReconnecting": "Connessione persa — riconnessione…",
+    "clipRunning": "Server di ritaglio attivo",
+    "clipStarting": "Avvio del server di ritaglio...",
+    "clipPortConflict": "La porta 19827 è occupata. Web Clipper non disponibile.",
+    "clipError": "Errore del server di ritaglio. Riavvio...",
+    "signOut": "Esci",
+    "changePassword": "Cambia password"
   },
   "updateBanner": {
     "message": "La versione {{version}} è disponibile",

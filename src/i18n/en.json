@@ -43,7 +43,15 @@
     "settingsShortcut": " (Cmd/Ctrl+,)",
     "switchProject": "Switch Project",
     "updateAvailable": "Update available",
-    "updateAvailableSuffix": " · update"
+    "updateAvailableSuffix": " · update",
+    "connOnline": "Connected to server",
+    "connReconnecting": "Connection lost — reconnecting…",
+    "clipRunning": "Clip server running",
+    "clipStarting": "Clip server starting...",
+    "clipPortConflict": "Port 19827 is occupied. Web Clipper unavailable.",
+    "clipError": "Clip server error. Restarting...",
+    "signOut": "Sign out",
+    "changePassword": "Change password"
   },
   "updateBanner": {
     "message": "Version {{version}} is available",

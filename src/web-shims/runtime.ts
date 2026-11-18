@@ -5,6 +5,8 @@
  * the desktop build never sees this folder.
  */
 
+import i18n from "@/i18n"
+
 export const WEB_HEADER = { "X-LLM-Wiki": "1" } as const
 
 function redirectToLogin(): void {
@@ -13,11 +15,23 @@ function redirectToLogin(): void {
   }
 }
 
+function networkErrorText(): string {
+  return (i18n.language || "").toLowerCase().startsWith("zh")
+    ? "无法连接服务器，请检查网络后重试"
+    : "Cannot reach the server. Check your connection and try again."
+}
+
 /** fetch() against our own server: same-origin cookie + CSRF header. */
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers)
   headers.set("X-LLM-Wiki", "1")
-  const res = await nativeFetch(path, { ...init, headers, credentials: "same-origin" })
+  let res: Response
+  try {
+    res = await nativeFetch(path, { ...init, headers, credentials: "same-origin" })
+  } catch (err) {
+    if ((err as { name?: string })?.name === "AbortError") throw err
+    throw new Error(networkErrorText())
+  }
   if (res.status === 401) {
     redirectToLogin()
     throw new Error("Not signed in")
@@ -86,9 +100,62 @@ const handlers = new Map<string, Set<Handler>>()
 let source: EventSource | null = null
 let nextId = 1
 
+// Connection state, surfaced in the sidebar (window event "lw:connection").
+let connected = true
+let reportTimer: ReturnType<typeof setTimeout> | null = null
+let retryTimer: ReturnType<typeof setTimeout> | null = null
+
+function setConnected(next: boolean): void {
+  if (reportTimer) {
+    clearTimeout(reportTimer)
+    reportTimer = null
+  }
+  const emit = () => {
+    if (connected === next) return
+    connected = next
+    window.dispatchEvent(new CustomEvent("lw:connection", { detail: { connected: next } }))
+  }
+  // Brief blips (mobile network handover, server restart) shouldn't flash
+  // a warning; report a drop only if it lasts a few seconds.
+  if (next) emit()
+  else reportTimer = setTimeout(emit, 3000)
+}
+
+export function isConnected(): boolean {
+  return connected
+}
+
+function scheduleReconnect(ms: number): void {
+  if (retryTimer) clearTimeout(retryTimer)
+  retryTimer = setTimeout(() => {
+    retryTimer = null
+    ensureSource()
+  }, ms)
+}
+
+function reconnectNow(): void {
+  if (source && source.readyState !== EventSource.CLOSED) return
+  source?.close()
+  source = null
+  if (retryTimer) clearTimeout(retryTimer)
+  retryTimer = null
+  ensureSource()
+}
+
+if (typeof window !== "undefined") {
+  // Phones freeze background tabs and drop the stream; reconnect at once
+  // when the page comes back instead of waiting for the retry timer.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") reconnectNow()
+  })
+  window.addEventListener("online", reconnectNow)
+  window.addEventListener("offline", () => setConnected(false))
+}
+
 function ensureSource(): void {
   if (source || typeof EventSource === "undefined") return
   source = new EventSource("/api/events", { withCredentials: true })
+  source.onopen = () => setConnected(true)
   source.onmessage = (msg) => {
     let parsed: { event?: string; payload?: unknown }
     try {
@@ -109,6 +176,7 @@ function ensureSource(): void {
     }
   }
   source.onerror = () => {
+    setConnected(false)
     // EventSource reconnects by itself; if the session expired the
     // reconnect gets a 401 and the source closes — check and bounce.
     if (source && source.readyState === EventSource.CLOSED) {
@@ -117,9 +185,9 @@ function ensureSource(): void {
         .then((r) => r.json())
         .then((s) => {
           if (!s.authenticated) redirectToLogin()
-          else setTimeout(ensureSource, 2000)
+          else scheduleReconnect(2000)
         })
-        .catch(() => setTimeout(ensureSource, 5000))
+        .catch(() => scheduleReconnect(5000))
     }
   }
 }

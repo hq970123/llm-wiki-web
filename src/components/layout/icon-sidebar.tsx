@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import {
-  FileText, FolderOpen, Search, Network, ClipboardCheck, Settings, ArrowLeftRight, ClipboardList, Globe, MessageSquare, Sparkles,
+  FileText, FolderOpen, Search, Network, ClipboardCheck, Settings, ArrowLeftRight, ClipboardList, Globe, MessageSquare, Sparkles, LogOut, KeyRound,
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useWikiStore } from "@/stores/wiki-store"
@@ -9,6 +9,7 @@ import { useResearchStore } from "@/stores/research-store"
 import { useUpdateStore, hasAvailableUpdate } from "@/stores/update-store"
 import { useTranslation } from "react-i18next"
 import logoImg from "@/assets/logo.jpg"
+import { IS_WEB_BUILD } from "@/lib/api-server-constants"
 import type { WikiState } from "@/stores/wiki-store"
 import {
   isResearchPanelVisible,
@@ -51,6 +52,7 @@ export function IconSidebar({ onSwitchProject }: IconSidebarProps) {
   // Daemon health check
   const [daemonStatus, setDaemonStatus] = useState<string>("starting")
   useEffect(() => {
+    if (IS_WEB_BUILD) return
     const check = async () => {
       try {
         const { clipServerStatus } = await import("@/commands/fs")
@@ -63,6 +65,16 @@ export function IconSidebar({ onSwitchProject }: IconSidebarProps) {
     check()
     const interval = setInterval(check, 30000)
     return () => clearInterval(interval)
+  }, [])
+
+  // Web build: the dot shows the live link to the server (SSE) instead of
+  // the desktop clip daemon. runtime.ts reports drops after a short grace.
+  const [webConnected, setWebConnected] = useState(true)
+  useEffect(() => {
+    if (!IS_WEB_BUILD) return
+    const onChange = (e: Event) => setWebConnected(Boolean((e as CustomEvent<{ connected: boolean }>).detail?.connected))
+    window.addEventListener("lw:connection", onChange)
+    return () => window.removeEventListener("lw:connection", onChange)
   }, [])
 
   function handleResearchPanelToggle() {
@@ -83,7 +95,7 @@ export function IconSidebar({ onSwitchProject }: IconSidebarProps) {
           />
         </div>
         {/* Top: main nav items + Deep Research */}
-        <div className="flex flex-1 flex-col items-center gap-1">
+        <div className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none]">
           {NAV_ITEMS.map(({ view, icon: Icon, labelKey }) => (
             <Tooltip key={view}>
               <TooltipTrigger
@@ -142,25 +154,36 @@ export function IconSidebar({ onSwitchProject }: IconSidebarProps) {
         </div>
         {/* Bottom: daemon status + settings + switch project */}
         <div className="flex flex-col items-center gap-1 pb-1">
-          {/* Daemon status indicator */}
-          <Tooltip>
-            <TooltipTrigger className="flex h-6 w-6 items-center justify-center">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                  daemonStatus === "running" ? "bg-emerald-500" :
-                  daemonStatus === "starting" ? "bg-amber-400 animate-pulse" :
-                  daemonStatus === "port_conflict" ? "bg-red-500" :
-                  "bg-red-500 animate-pulse"
-                }`}
-              />
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {daemonStatus === "running" && "Clip server running"}
-              {daemonStatus === "starting" && "Clip server starting..."}
-              {daemonStatus === "port_conflict" && "Port 19827 is occupied. Web Clipper unavailable."}
-              {daemonStatus === "error" && "Clip server error. Restarting..."}
-            </TooltipContent>
-          </Tooltip>
+          {/* Status dot: server link (web) or clip daemon (desktop) */}
+          {IS_WEB_BUILD ? (
+            <Tooltip>
+              <TooltipTrigger className="flex h-6 w-6 items-center justify-center" aria-label={webConnected ? t("nav.connOnline") : t("nav.connReconnecting")}>
+                <span className={`h-2.5 w-2.5 rounded-full ${webConnected ? "bg-emerald-500" : "bg-amber-400 animate-pulse"}`} />
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {webConnected ? t("nav.connOnline") : t("nav.connReconnecting")}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger className="flex h-6 w-6 items-center justify-center">
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${
+                    daemonStatus === "running" ? "bg-emerald-500" :
+                    daemonStatus === "starting" ? "bg-amber-400 animate-pulse" :
+                    daemonStatus === "port_conflict" ? "bg-red-500" :
+                    "bg-red-500 animate-pulse"
+                  }`}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {daemonStatus === "running" && t("nav.clipRunning")}
+                {daemonStatus === "starting" && t("nav.clipStarting")}
+                {daemonStatus === "port_conflict" && t("nav.clipPortConflict")}
+                {daemonStatus === "error" && t("nav.clipError")}
+              </TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger
               onClick={() => setActiveView("settings")}
@@ -202,6 +225,30 @@ export function IconSidebar({ onSwitchProject }: IconSidebarProps) {
             </TooltipTrigger>
             <TooltipContent side="right">{t("nav.switchProject")}</TooltipContent>
           </Tooltip>
+          {IS_WEB_BUILD && (
+            <>
+              <Tooltip>
+                <TooltipTrigger
+                  onClick={() => window.dispatchEvent(new Event("lw:change-password"))}
+                  aria-label={t("nav.changePassword")}
+                  className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-accent-foreground"
+                >
+                  <KeyRound className="h-5 w-5" />
+                </TooltipTrigger>
+                <TooltipContent side="right">{t("nav.changePassword")}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  onClick={() => window.dispatchEvent(new Event("lw:sign-out"))}
+                  aria-label={t("nav.signOut")}
+                  className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-accent-foreground"
+                >
+                  <LogOut className="h-5 w-5" />
+                </TooltipTrigger>
+                <TooltipContent side="right">{t("nav.signOut")}</TooltipContent>
+              </Tooltip>
+            </>
+          )}
         </div>
       </div>
     </TooltipProvider>

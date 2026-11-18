@@ -28,6 +28,8 @@ const T_ZH = {
       pwShort: "新密码至少 8 位",
       pwDone: "密码已修改",
       hint: "所有数据保存在服务器的数据目录中。",
+      uploadFailed: "上传失败",
+      uploadNetwork: "上传失败：网络中断",
     }
 const T_EN: typeof T_ZH = {
       chooseFolder: "Choose a folder on the server",
@@ -50,6 +52,8 @@ const T_EN: typeof T_ZH = {
       pwShort: "New password must be at least 8 characters",
       pwDone: "Password changed",
       hint: "Everything lives in the server's data directory.",
+      uploadFailed: "Upload failed",
+      uploadNetwork: "Upload failed (network error)",
     }
 
 /** Shell strings follow the app's current UI language (Settings → Interface). */
@@ -82,9 +86,6 @@ function ensureStyles(): void {
   .lw-primary:hover{background:#1d4ed8}
   .lw-hint{padding:0 16px 10px;font-size:12px;opacity:.6}
   .lw-progress{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483001;background:#111827;color:#fff;padding:8px 14px;border-radius:999px;font:13px system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3)}
-  .lw-signout{position:fixed;left:56px;bottom:6px;z-index:2147482000;font:11px system-ui,sans-serif;padding:3px 8px;border-radius:999px;border:1px solid rgba(127,127,127,.35);background:rgba(127,127,127,.08);color:inherit;opacity:.45;cursor:pointer}
-  .lw-signout:hover{opacity:1}
-  .lw-changepw{left:auto;right:8px}
   .lw-form{padding:6px 16px 4px;display:flex;flex-direction:column;gap:8px}
   .lw-form input{border:1px solid var(--border,#d1d5db);border-radius:8px;padding:7px 10px;font:inherit;background:transparent;color:inherit}
   .lw-err{color:#dc2626;font-size:12px;min-height:16px}
@@ -162,9 +163,9 @@ export async function uploadFiles(files: File[], _label?: string, dir?: string):
           data = { error: xhr.responseText }
         }
         if (xhr.status >= 200 && xhr.status < 300) resolve(data as UploadResult)
-        else reject(new Error((data as { error?: string }).error ?? `Upload failed (${xhr.status})`))
+        else reject(new Error((data as { error?: string }).error ?? `${T.uploadFailed} (${xhr.status})`))
       }
-      xhr.onerror = () => reject(new Error("Upload failed (network error)"))
+      xhr.onerror = () => reject(new Error(T.uploadNetwork))
       xhr.send(form)
     })
     return result
@@ -309,34 +310,22 @@ export async function pickServerFolder(opts: { title?: string; multiple?: boolea
 
 // ---------------------------------------------------------------- sign out
 
-function installSignOut(): void {
-  if (typeof document === "undefined") return
-  const add = () => {
-    ensureStyles()
-    if (document.querySelector(".lw-signout")) return
-    const b = document.createElement("button")
-    b.type = "button"
-    b.className = "lw-signout"
-    b.textContent = T.signOut
-    b.title = T.signOut
-    b.addEventListener("click", async () => {
-      try {
-        await apiFetch("/api/auth/logout", { method: "POST" })
-      } finally {
-        location.href = "/login"
-      }
-    })
-    document.body.appendChild(b)
-    const c = document.createElement("button")
-    c.type = "button"
-    c.className = "lw-signout lw-changepw"
-    c.textContent = T.changePw
-    c.title = T.changePw
-    c.addEventListener("click", () => openChangePassword())
-    document.body.appendChild(c)
+async function signOut(): Promise<void> {
+  try {
+    await apiFetch("/api/auth/logout", { method: "POST" })
+  } finally {
+    location.href = "/login"
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", add)
-  else add()
+}
+
+/**
+ * Account actions live in the left icon bar (web build only); it asks for
+ * them with window events so the shared component needs no web import.
+ */
+function installAccountActions(): void {
+  if (typeof window === "undefined") return
+  window.addEventListener("lw:sign-out", () => void signOut())
+  window.addEventListener("lw:change-password", () => openChangePassword())
 }
 
 function openChangePassword(): void {
@@ -444,4 +433,4 @@ function installLocalServiceRewrite(): void {
 }
 
 installLocalServiceRewrite()
-installSignOut()
+installAccountActions()

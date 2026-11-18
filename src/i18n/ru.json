@@ -43,7 +43,15 @@
     "settingsShortcut": " (Cmd/Ctrl+,)",
     "switchProject": "Сменить проект",
     "updateAvailable": "Доступно обновление",
-    "updateAvailableSuffix": " · обновление"
+    "updateAvailableSuffix": " · обновление",
+    "connOnline": "Подключено к серверу",
+    "connReconnecting": "Связь потеряна — переподключение…",
+    "clipRunning": "Сервер клиппера работает",
+    "clipStarting": "Сервер клиппера запускается...",
+    "clipPortConflict": "Порт 19827 занят. Веб-клиппер недоступен.",
+    "clipError": "Ошибка сервера клиппера. Перезапуск...",
+    "signOut": "Выйти",
+    "changePassword": "Сменить пароль"
   },
   "updateBanner": {
     "message": "Доступна версия {{version}}",
